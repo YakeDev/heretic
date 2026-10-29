@@ -5,6 +5,7 @@ Interface **expérimentale, en français, locale, avec diagnostics, télécharge
 ## Périmètre disponible
 
 - Tableau de bord React accessible dans le navigateur en local.
+- Barre latérale fixe à l'écran sur ordinateur pendant le défilement de la page ; si les liens dépassent la hauteur disponible, défilement interne du menu. Sous 951 px, barre de navigation horizontale non fixe avec défilement latéral des liens, afin de préserver la place sur petit écran.
 - API FastAPI locale : GET /api/health, GET /api/system, GET /api/project, GET /api/models et GET /api/models/search?q= ; endpoints de téléchargement opt-in (voir ci-dessous).
 - Vue de la mémoire, du processeur, de l'espace disque et des GPU NVIDIA détectables par nvidia-smi.
 - Métadonnées du paquet Heretic lues depuis pyproject.toml.
