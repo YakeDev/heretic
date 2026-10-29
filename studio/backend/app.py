@@ -55,7 +55,7 @@ def inspect_nvidia_gpus() -> list[dict[str, object]]:
         return []
     if completed.returncode != 0:
         return []
-    gpus = []
+    gpus: list[dict[str, object]] = []
     for row in completed.stdout.splitlines():
         parts = [value.strip() for value in row.split(",")]
         if len(parts) != 3:
