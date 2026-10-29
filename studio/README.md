@@ -2,6 +2,8 @@
 
 Interface **expérimentale, en français, locale, avec diagnostics, téléchargement facultatif et premier chat IA local** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
 
+Pour la conception visuelle, les principes d'ergonomie cognitive et les scénarios de recette, voir [Principes UX/UI](UX_UI_GUIDELINES.md).
+
 ## Périmètre disponible
 
 - Tableau de bord React accessible dans le navigateur en local.
