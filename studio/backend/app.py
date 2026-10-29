@@ -27,6 +27,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from hardware import estimate_resources, system_resources
 from inference import (
     InferenceError,
+    current_session,
     downloaded_models,
     generate,
     generation_status,
@@ -276,6 +277,12 @@ def chat_models(request: Request) -> dict[str, object]:
         "models": downloaded_models(),
         "notice": "Seuls les modèles locaux validés par le gestionnaire sont proposés.",
     }
+
+
+@app.get("/api/chat/current")
+def chat_current(request: Request) -> dict[str, object]:
+    _download_authorization(request)
+    return {"session": current_session()}
 
 
 @app.post("/api/chat/start")
