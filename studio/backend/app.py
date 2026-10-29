@@ -10,8 +10,7 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Literal
-from typing import Annotated
+from typing import Annotated, Literal
 
 from catalog import HubUnavailable, curated_catalog, search_hugging_face
 from fastapi import FastAPI, HTTPException, Query
