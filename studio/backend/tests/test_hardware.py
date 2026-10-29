@@ -80,7 +80,7 @@ class ResourceEstimateTests(unittest.TestCase):
         )
 
     def test_optimization_estimate_exceeds_inference(self) -> None:
-        info = {"nvidia_gpus": [], "disk_available_gb": 60}
+        info: dict[str, object] = {"nvidia_gpus": [], "disk_available_gb": 60}
         low = estimate_resources(self.model_id, "inference", "fp16", info)
         high = estimate_resources(self.model_id, "optimization", "fp16", info)
         assert low is not None and high is not None
@@ -90,13 +90,19 @@ class ResourceEstimateTests(unittest.TestCase):
         with (
             patch(
                 "app.inspect_nvidia_gpus",
-                return_value=[{"name": "Mock", "memory_free_gb": 12, "memory_total_gb": 16}],
+                return_value=[
+                    {"name": "Mock", "memory_free_gb": 12, "memory_total_gb": 16}
+                ],
             ),
             patch("catalog.httpx.get") as fetch,
         ):
             response = self.client.get(
                 "/api/hardware/estimate",
-                params={"model_id": self.model_id, "mode": "inference", "precision": "fp16"},
+                params={
+                    "model_id": self.model_id,
+                    "mode": "inference",
+                    "precision": "fp16",
+                },
             )
         self.assertEqual(response.status_code, 200)
         self.assertEqual(response.json()["model_id"], self.model_id)
