@@ -268,6 +268,7 @@ class ChatGenerateRequest(BaseModel):
     messages: list[ChatMessage]
     max_new_tokens: int = 256
     style: Literal["neutral", "concise", "pedagogical"] = "neutral"
+    generation_mode: Literal["stable", "varied"] = "stable"
 
 
 @app.get("/api/chat/models")
@@ -315,6 +316,7 @@ def chat_generate(
             [message.model_dump() for message in payload.messages],
             payload.max_new_tokens,
             payload.style,
+            payload.generation_mode,
         )
     except InferenceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc

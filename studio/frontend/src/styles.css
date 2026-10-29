@@ -406,3 +406,8 @@ footer{padding:37px 0 10px;border-top:1px solid #263a46;margin-top:53px;font-siz
 .connection-status.pending{color:#f6dfb0;background:#3a3124;border-color:#7b6440}
 .connection-status.pending .status-dot{background:#e9bf71}
 .studio-hero{scroll-margin-top:94px}
+
+.chat-new-conversation{border-color:#52756e;background:#1b3d3b;color:#d6f6e8;font-weight:750}
+.chat-new-conversation:hover:not(:disabled){background:#255a4f}
+.chat-repeat-warning{font-size:12px!important;line-height:1.6!important;margin:14px 0 0!important;
+  color:#f5d3a8!important;background:#3a3025;border:1px solid #886c45;border-radius:8px;padding:11px 13px}

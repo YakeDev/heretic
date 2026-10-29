@@ -18,6 +18,7 @@ from typing import Any
 MAX_MESSAGES = 12
 MAX_CHARACTERS = 6000
 MAX_TOKENS = 512
+GENERATION_MODES = {"stable", "varied"}
 CHAT_STYLES = {
     "neutral": (
         "Tu es un assistant en français. Réponds directement à la question, "
@@ -27,7 +28,8 @@ CHAT_STYLES = {
     "concise": (
         "Réponds en français, de façon brève et précise. Respecte strictement "
         "les contraintes de longueur et le nombre de phrases demandé. "
-        "Si tu n'es pas certain, dis-le."
+        "Si tu n'es pas certain, dis-le. Si l'utilisateur corrige une erreur, "
+        "réexamine ta réponse au lieu de la répéter mot pour mot."
     ),
     "pedagogical": (
         "Explique en français avec des termes exacts et des exemples simples. "
@@ -66,6 +68,9 @@ def validate_request(command: object) -> bool:
     messages = command.get("messages")
     tokens = command.get("max_new_tokens")
     style = command.get("style", "neutral")
+    mode = command.get("generation_mode", "stable")
+    if mode not in GENERATION_MODES:
+        return False
     if style not in CHAT_STYLES:
         return False
     if type(tokens) is not int or not 1 <= tokens <= MAX_TOKENS:
@@ -121,6 +126,20 @@ def finish_reason(count: int, maximum: int, last_token: int, eos_ids: object) ->
     if count >= maximum:
         return "length"
     return "unknown"
+
+
+def generation_options(mode: str) -> dict[str, bool | float]:
+    """Bounded server-side decoding presets; no arbitrary sampling parameters."""
+    if mode == "stable":
+        return {"do_sample": False, "repetition_penalty": 1.05}
+    if mode == "varied":
+        return {
+            "do_sample": True,
+            "temperature": 0.7,
+            "top_p": 0.9,
+            "repetition_penalty": 1.08,
+        }
+    raise ValueError("Unknown generation mode")
 
 
 def chat_messages(messages: list[dict[str, str]], style: str) -> list[dict[str, str]]:
@@ -239,7 +258,7 @@ def main() -> int:
                     generated = model.generate(
                         **inputs,
                         max_new_tokens=command["max_new_tokens"],
-                        do_sample=False,
+                        **generation_options(command.get("generation_mode", "stable")),
                         pad_token_id=tokenizer.eos_token_id,
                     )
                 if device == "cuda":

@@ -12,8 +12,30 @@ type ReplyStats = {
   torch_vram_gib?: number;
   torch_peak_vram_gib?: number;
 };
-type Message = { role: 'user' | 'assistant'; content: string; stats?: ReplyStats };
+type Message = { role: 'user' | 'assistant'; content: string; stats?: ReplyStats; repeated?: boolean };
 type ResponseStyle = 'neutral' | 'concise' | 'pedagogical';
+type GenerationMode = 'stable' | 'varied';
+
+function looksRepeated(answer: string, previous: Message[]): boolean {
+  const normalized = (text: string) => text.toLocaleLowerCase('fr')
+    .normalize('NFD').replace(/[\u0300-\u036f]/g, '')
+    .replace(/[^a-z0-9]+/g, ' ').trim();
+  const now = normalized(answer);
+  if (now.length < 40) return false;
+  const grams = (text: string) => {
+    const words = text.split(' ');
+    return new Set(words.slice(0, -2).map((_, index) => words.slice(index, index + 3).join(' ')));
+  };
+  return previous.filter((message) => message.role === 'assistant').slice(-3).some((item) => {
+    const before = normalized(item.content);
+    if (now === before) return true;
+    if (now.length < 80 || before.length < 80) return false;
+    const a = grams(now), b = grams(before);
+    if (a.size < 5 || b.size < 5) return false;
+    const common = [...a].filter((part) => b.has(part)).length;
+    return common / (a.size + b.size - common) >= 0.84;
+  });
+}
 type Resources = {
   ram_available_gb?: number;
   nvidia_gpus?: Array<{ name: string; memory_free_gb: number }>;
@@ -57,6 +79,7 @@ export function LocalChat() {
   const [selected, setSelected] = useState('');
   const [device, setDevice] = useState<'cuda' | 'cpu'>('cuda');
   const [style, setStyle] = useState<ResponseStyle>('concise');
+  const [generationMode, setGenerationMode] = useState<GenerationMode>('stable');
   const [maxNewTokens, setMaxNewTokens] = useState<128 | 256 | 384 | 512>(256);
   const [resources, setResources] = useState<Resources | null>(null);
   const [session, setSession] = useState<Session | null>(null);
@@ -141,6 +164,7 @@ export function LocalChat() {
             role: 'user', content: pendingUserText,
           }, {
             role: 'assistant', content: response.answer ?? '',
+            repeated: looksRepeated(response.answer ?? '', old),
             stats: {
               generated_tokens: response.generated_tokens,
               elapsed_seconds: response.elapsed_seconds,
@@ -211,6 +235,15 @@ export function LocalChat() {
     }
   }
 
+  function newConversation() {
+    if (!session || session.state !== 'ready' || requestId || busy) return;
+    setMessages([]);
+    setDraft('');
+    setPendingUserText('');
+    setError('');
+    setNotice('Nouvelle conversation : historique effacé de cet onglet, modèle toujours chargé.');
+  }
+
   async function send(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
     const text = draft.trim();
@@ -231,6 +264,7 @@ export function LocalChat() {
           messages: outgoing.map(({ role, content }) => ({ role, content })),
           max_new_tokens: maxNewTokens,
           style,
+          generation_mode: generationMode,
         },
       );
       setDraft('');
@@ -304,12 +338,33 @@ export function LocalChat() {
             <option value={512}>512 tokens · très long (plus lent)</option>
           </select>
         </label>
+        <label>Mode de génération
+          <select
+            value={generationMode}
+            onChange={(event) => setGenerationMode(event.target.value as GenerationMode)}
+            disabled={Boolean(requestId) || busy}
+          >
+            <option value="stable">Stable · pour comparer les tests</option>
+            <option value="varied">Varié · formulations plus diverses</option>
+          </select>
+        </label>
       </div>
         <p className="chat-hint">
-          Ces paramètres orientent le modèle mais ne garantissent pas son exactitude.
+          Le mode varié utilise un échantillonnage contrôlé. Ni ce réglage ni les
+          consignes ne garantissent l'exactitude du modèle.
         </p>
       </details>
       <div className="chat-actions">
+        {session && (
+          <button
+            type="button"
+            className="chat-new-conversation"
+            onClick={newConversation}
+            disabled={session.state !== 'ready' || Boolean(requestId) || busy}
+          >
+            Nouvelle conversation
+          </button>
+        )}
         <button type="button" onClick={() => void refreshModels()} disabled={busy}>
           ↻ Actualiser les modèles téléchargés
         </button>
@@ -340,6 +395,13 @@ export function LocalChat() {
             {message.role === 'assistant'
               ? <MarkdownMessage content={message.content} />
               : <p>{message.content}</p>}
+            {message.repeated && (
+              <p className="chat-repeat-warning" role="note">
+                Réponse très similaire à une précédente. Essaie de reformuler,
+                d'apporter un exemple ou de démarrer une nouvelle conversation.
+                Cela ne prouve pas que la réponse est correcte.
+              </p>
+            )}
             {message.stats && (
               <div className="chat-message-metrics">
                 <span>{message.stats.generated_tokens ?? '—'} tokens</span>

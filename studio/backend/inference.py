@@ -34,6 +34,7 @@ MAX_PROMPT_CHARS = 6000
 MAX_MESSAGES = 12
 MAX_NEW_TOKENS = 512
 ALLOWED_STYLES = {"neutral", "concise", "pedagogical"}
+ALLOWED_MODES = {"stable", "varied"}
 
 _lock = threading.RLock()
 _session: dict[str, Any] | None = None
@@ -296,12 +297,18 @@ def _validate_messages(messages: object) -> list[dict[str, str]]:
 
 
 def generate(
-    session_id: str, messages: object, max_new_tokens: int, style: str = "neutral"
+    session_id: str,
+    messages: object,
+    max_new_tokens: int,
+    style: str = "neutral",
+    generation_mode: str = "stable",
 ) -> dict[str, object]:
     if not isinstance(max_new_tokens, int) or not 1 <= max_new_tokens <= MAX_NEW_TOKENS:
         raise InferenceError("Longueur de réponse hors limites.", 422)
     if style not in ALLOWED_STYLES:
         raise InferenceError("Style de réponse inconnu.", 422)
+    if generation_mode not in ALLOWED_MODES:
+        raise InferenceError("Mode de génération inconnu.", 422)
     validated = _validate_messages(messages)
     with _lock:
         if _session is None or _session["session_id"] != session_id:
@@ -327,6 +334,7 @@ def generate(
                         "messages": validated,
                         "max_new_tokens": max_new_tokens,
                         "style": style,
+                        "generation_mode": generation_mode,
                     }
                 )
                 + "\n"
