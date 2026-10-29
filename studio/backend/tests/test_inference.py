@@ -270,7 +270,9 @@ class InferenceTests(unittest.TestCase):
         lazy = LazyModule()
         self.assertNotIn("AutoModelForCausalLM", vars(lazy))
         self.assertNotIn("AutoTokenizer", vars(lazy))
-        with patch("inference_worker.importlib.import_module", return_value=lazy) as imp:
+        with patch(
+            "inference_worker.importlib.import_module", return_value=lazy
+        ) as imp:
             found_model, found_tokenizer = resolve_transformer_factories()
         self.assertIs(found_model, model_type)
         self.assertIs(found_tokenizer, tokenizer_type)
