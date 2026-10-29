@@ -45,17 +45,19 @@ class InferenceTests(unittest.TestCase):
 
     def _snapshot(self, model_type: str = "llama") -> Path:
         directory = self.download_dir / self.model_id.replace("/", "--") / self.revision
-        directory.mkdir(parents=True)
+        directory.mkdir(parents=True, exist_ok=True)
         (directory / "config.json").write_text(
             json.dumps({"model_type": model_type}), encoding="utf-8"
         )
         (directory / "model.safetensors").write_bytes(b"safe-placeholder")
         (directory / "heretic-studio-snapshot.json").write_text(
-            json.dumps({
-                "model_id": self.model_id,
-                "revision": self.revision,
-                "files": ["config.json", "model.safetensors"],
-            }),
+            json.dumps(
+                {
+                    "model_id": self.model_id,
+                    "revision": self.revision,
+                    "files": ["config.json", "model.safetensors"],
+                }
+            ),
             encoding="utf-8",
         )
         return directory
@@ -65,10 +67,15 @@ class InferenceTests(unittest.TestCase):
         self._snapshot()
         reply = self.client.get("/api/chat/models", headers=self.headers)
         self.assertEqual(reply.status_code, 200)
-        self.assertEqual(reply.json()["models"], [{
-            "model_id": self.model_id,
-            "revision": self.revision,
-        }])
+        self.assertEqual(
+            reply.json()["models"],
+            [
+                {
+                    "model_id": self.model_id,
+                    "revision": self.revision,
+                }
+            ],
+        )
 
     def test_refuse_wrong_model_architecture(self) -> None:
         self._snapshot("remote_architecture")
@@ -77,7 +84,9 @@ class InferenceTests(unittest.TestCase):
     def test_refuse_remote_auto_map(self) -> None:
         directory = self._snapshot()
         (directory / "config.json").write_text(
-            json.dumps({"model_type": "llama", "auto_map": {"AutoConfig": "unknown.Code"}}),
+            json.dumps(
+                {"model_type": "llama", "auto_map": {"AutoConfig": "unknown.Code"}}
+            ),
             encoding="utf-8",
         )
         self.assertEqual(inference.downloaded_models(), [])
@@ -104,8 +113,13 @@ class InferenceTests(unittest.TestCase):
 
     def test_start_requires_local_completed_snapshot(self) -> None:
         response = self.client.post(
-            "/api/chat/start", headers=self.headers,
-            json={"model_id": self.model_id, "revision": self.revision, "device": "cpu"},
+            "/api/chat/start",
+            headers=self.headers,
+            json={
+                "model_id": self.model_id,
+                "revision": self.revision,
+                "device": "cpu",
+            },
         )
         self.assertEqual(response.status_code, 404)
 
@@ -114,9 +128,7 @@ class InferenceTests(unittest.TestCase):
             "/api/chat/models", headers={"Origin": "https://attacker.invalid"}
         )
         self.assertEqual(response.status_code, 403)
-        response = self.client.get(
-            "/api/chat/models", headers={"Origin": self.origin}
-        )
+        response = self.client.get("/api/chat/models", headers={"Origin": self.origin})
         self.assertEqual(response.status_code, 403)
 
     def _start_mock_session(self) -> tuple[str, Mock]:
@@ -129,7 +141,8 @@ class InferenceTests(unittest.TestCase):
             patch("inference.subprocess.Popen", return_value=process) as start,
         ):
             response = self.client.post(
-                "/api/chat/start", headers=self.headers,
+                "/api/chat/start",
+                headers=self.headers,
                 json={
                     "model_id": self.model_id,
                     "revision": self.revision,
@@ -157,9 +170,12 @@ class InferenceTests(unittest.TestCase):
             json={"model_id": self.model_id, "revision": self.revision, "device": "cpu"},
         )
         self.assertEqual(result.status_code, 409)
-        self.assertEqual(self.client.get(
-            "/api/chat/" + session_id, headers=self.headers
-        ).status_code, 200)
+        self.assertEqual(
+            self.client.get(
+                "/api/chat/" + session_id, headers=self.headers
+            ).status_code,
+            200,
+        )
 
     def test_generate_and_poll_without_loading_real_torch(self) -> None:
         session_id, proc = self._start_mock_session()
@@ -181,11 +197,13 @@ class InferenceTests(unittest.TestCase):
         self.assertIn("Bonjour !", payload)
         output = self.jobs_dir / f"chat-{session_id}-{request_id}.json"
         output.write_text(
-            json.dumps({
-                "state": "completed",
-                "answer": "Salut !",
-                "generated_tokens": 4,
-            }),
+            json.dumps(
+                {
+                    "state": "completed",
+                    "answer": "Salut !",
+                    "generated_tokens": 4,
+                }
+            ),
             encoding="utf-8",
         )
         finished = self.client.get(
@@ -230,16 +248,24 @@ class InferenceTests(unittest.TestCase):
 
     def test_worker_rejects_malformed_requests(self) -> None:
         self.assertFalse(validate_request({"command": "shell", "messages": []}))
-        self.assertFalse(validate_request({
-            "command": "generate",
-            "messages": [{"role": "system", "content": "run"}],
-            "max_new_tokens": 128,
-        }))
-        self.assertTrue(validate_request({
-            "command": "generate",
-            "messages": [{"role": "user", "content": "Bonjour"}],
-            "max_new_tokens": 32,
-        }))
+        self.assertFalse(
+            validate_request(
+                {
+                    "command": "generate",
+                    "messages": [{"role": "system", "content": "run"}],
+                    "max_new_tokens": 128,
+                }
+            )
+        )
+        self.assertTrue(
+            validate_request(
+                {
+                    "command": "generate",
+                    "messages": [{"role": "user", "content": "Bonjour"}],
+                    "max_new_tokens": 32,
+                }
+            )
+        )
 
 
 if __name__ == "__main__":
