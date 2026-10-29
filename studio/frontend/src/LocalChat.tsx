@@ -43,6 +43,14 @@ type Reply = {
 
 const BASE = 'http://127.0.0.1:8765';
 
+const CHAT_STATES: Record<Session['state'], string> = {
+  loading: 'Chargement du modèle',
+  ready: 'Modèle prêt à répondre',
+  generating: 'Réponse en cours',
+  failed: 'Chargement échoué',
+  stopped: 'Modèle arrêté',
+};
+
 export function LocalChat() {
   const token = useRef('');
   const [models, setModels] = useState<LocalModel[]>([]);
@@ -239,10 +247,10 @@ export function LocalChat() {
   return (
     <section className="local-chat-panel" id="local-chat" aria-labelledby="local-chat-title">
       <div className="eyebrow">06 / PREMIER CHAT LOCAL</div>
-      <h2 id="local-chat-title">Parler avec un modèle téléchargé</h2>
+      <h2 id="local-chat-title">Discuter avec ton modèle local</h2>
       <p>
-        Mode expérimental : un modèle est chargé dans un processus local isolé.
-        Aucun appel à une API de génération en ligne. Le premier chargement peut être lent.
+        Sélectionne un modèle déjà téléchargé et démarre une conversation.
+        Les réponses sont générées sur ton ordinateur, sans API de génération distante.
       </p>
       <div className="chat-settings">
         <label>Modèle disponible
@@ -270,7 +278,9 @@ export function LocalChat() {
           </select>
         </label>
       </div>
-      <div className="chat-tuning" aria-label="Paramètres des réponses">
+      <details className="chat-options">
+        <summary>Personnaliser les réponses <span>Style et longueur · facultatif</span></summary>
+        <div className="chat-tuning" aria-label="Paramètres des réponses">
         <label>Style de réponse
           <select
             value={style}
@@ -295,10 +305,10 @@ export function LocalChat() {
           </select>
         </label>
       </div>
-      <p className="chat-hint">
-        Ces réglages orientent la réponse mais ne garantissent ni la justesse des faits
-        ni le respect exact d’une consigne par un petit modèle.
-      </p>
+        <p className="chat-hint">
+          Ces paramètres orientent le modèle mais ne garantissent pas son exactitude.
+        </p>
+      </details>
       <div className="chat-actions">
         <button type="button" onClick={() => void refreshModels()} disabled={busy}>
           ↻ Actualiser les modèles téléchargés
@@ -314,11 +324,11 @@ export function LocalChat() {
         )}
       </div>
       {models.length === 0 && (
-        <p className="chat-hint">Aucun modèle local validé. Télécharge d’abord les poids depuis la section précédente.</p>
+        <p className="chat-hint">Aucun modèle local disponible. <a href="#downloads">Préparer un téléchargement</a>, puis actualiser cette liste.</p>
       )}
-      <div className="chat-state" role="status">
-        <span className="status-dot" />
-        {session ? 'État du modèle : ' + session.state : notice}
+      <div className={'chat-state ' + (session ? 'is-' + session.state : 'is-idle')} role="status" aria-live="polite">
+        <span className="status-dot" aria-hidden="true" />
+        {session ? CHAT_STATES[session.state] : notice}
         {session?.message ? ' · ' + session.message : ''}
       </div>
       {error && <p className="error" role="alert">{error}</p>}
@@ -361,8 +371,10 @@ export function LocalChat() {
         {requestId && <p className="chat-hint">Le modèle prépare sa réponse…</p>}
       </div>
       {messages.some((message) => message.stats) && (
-        <div className="chat-performance" aria-label="Performances de la session">
-          <strong>Performances observées</strong>
+        <details className="chat-performance-details">
+          <summary>Voir les performances de la session</summary>
+          <div className="chat-performance" aria-label="Performances de la session">
+            <strong>Performances observées</strong>
           <span>
             {messages.filter((message) => message.role === 'assistant').length} réponses ·{' '}
             {(() => {
@@ -382,10 +394,13 @@ export function LocalChat() {
             <span>VRAM libre (instantané GPU) : {resources.nvidia_gpus[0].memory_free_gb.toFixed(1)} Go</span>
           )}
           <small>Durée et vitesse mesurent la génération seule. Mémoire du processus et allocations PyTorch CUDA indiquées par réponse ; les instantanés RAM/VRAM libres sont des mesures système, pas une attribution précise au seul modèle.</small>
-        </div>
+          </div>
+        </details>
       )}
-      <div className="chat-evaluation">
-        <strong>Questions de test</strong>
+      <details className="chat-evaluation-details">
+        <summary>Tester la qualité des réponses</summary>
+        <div className="chat-evaluation">
+          <strong>Questions de test</strong>
         <button
           type="button"
           disabled={Boolean(requestId) || busy}
@@ -400,10 +415,11 @@ export function LocalChat() {
         >
           Continuité du contexte
         </button>
-        <p className="chat-hint">Ces questions aident à comparer les réponses, sans produire de score de vérité automatique.</p>
-      </div>
+        <p className="chat-hint">Ces questions servent à comparer les réponses, sans attribuer de note automatique de justesse.</p>
+        </div>
+      </details>
       <form className="chat-compose" onSubmit={(event) => void send(event)}>
-        <label htmlFor="chat-message">Ton message</label>
+        <label htmlFor="chat-message">Ton message <span className="chat-compose-hint">{draft.length}/2000 caractères</span></label>
         <textarea
           id="chat-message"
           rows={3}
@@ -417,7 +433,7 @@ export function LocalChat() {
           type="submit"
           disabled={session?.state !== 'ready' || Boolean(requestId) || busy || !draft.trim()}
         >
-          Envoyer au modèle local
+          Envoyer le message
         </button>
       </form>
       <p className="chat-hint">
