@@ -166,8 +166,13 @@ class InferenceTests(unittest.TestCase):
     def test_single_active_model_session(self) -> None:
         session_id, _ = self._start_mock_session()
         result = self.client.post(
-            "/api/chat/start", headers=self.headers,
-            json={"model_id": self.model_id, "revision": self.revision, "device": "cpu"},
+            "/api/chat/start",
+            headers=self.headers,
+            json={
+                "model_id": self.model_id,
+                "revision": self.revision,
+                "device": "cpu",
+            },
         )
         self.assertEqual(result.status_code, 409)
         self.assertEqual(
@@ -179,6 +184,7 @@ class InferenceTests(unittest.TestCase):
 
     def test_generate_and_poll_without_loading_real_torch(self) -> None:
         session_id, proc = self._start_mock_session()
+        assert inference._session is not None
         status_path = Path(inference._session["status_file"])
         status_path.write_text('{"state":"ready"}', encoding="utf-8")
         with patch("inference.subprocess.Popen") as start:
@@ -211,10 +217,12 @@ class InferenceTests(unittest.TestCase):
         )
         self.assertEqual(finished.status_code, 200)
         self.assertEqual(finished.json()["answer"], "Salut !")
+        assert inference._session is not None
         self.assertEqual(inference._session["request_id"], None)
 
     def test_reject_excessive_context_and_oversized_output(self) -> None:
         session_id, _ = self._start_mock_session()
+        assert inference._session is not None
         Path(inference._session["status_file"]).write_text(
             '{"state":"ready"}', encoding="utf-8"
         )
