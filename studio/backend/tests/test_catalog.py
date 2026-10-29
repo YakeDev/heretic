@@ -23,16 +23,22 @@ class CatalogTests(unittest.TestCase):
         models = response.json()["models"]
         self.assertGreaterEqual(len(models), 3)
         self.assertIn("meta-llama/Llama-3.2-3B-Instruct", [m["id"] for m in models])
-        self.assertTrue(all(m["url"].startswith("https://huggingface.co/") for m in models))
+        self.assertTrue(
+            all(m["url"].startswith("https://huggingface.co/") for m in models)
+        )
         self.assertTrue(all(m["compatibility"] == "non_vérifiée" for m in models))
         fetch.assert_not_called()
 
     def test_search_query_requires_minimum_length(self) -> None:
-        self.assertEqual(self.client.get("/api/models/search", params={"q": "x"}).status_code, 422)
+        self.assertEqual(
+            self.client.get("/api/models/search", params={"q": "x"}).status_code, 422
+        )
 
     def test_search_query_rejects_control_and_url_characters(self) -> None:
         self.assertEqual(
-            self.client.get("/api/models/search", params={"q": "https://evil.test?q=1"}).status_code,
+            self.client.get(
+                "/api/models/search", params={"q": "https://evil.test?q=1"}
+            ).status_code,
             422,
         )
 
