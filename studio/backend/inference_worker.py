@@ -65,6 +65,29 @@ def validate_request(command: object) -> bool:
     return total <= MAX_CHARACTERS and messages[-1]["role"] == "user"
 
 
+def prepare_chat_inputs(
+    tokenizer: Any, messages: list[dict[str, str]], device: Any
+) -> tuple[Any, int]:
+    """Prepare named model inputs for Transformers 4.x *and* 5.x.
+
+    Transformers 5 returns a BatchEncoding by default. Treating it as a
+    tensor (reading .shape or passing it positionally to generate) fails.
+    """
+    inputs = tokenizer.apply_chat_template(
+        messages,
+        tokenize=True,
+        add_generation_prompt=True,
+        return_dict=True,
+        return_tensors="pt",
+    )
+    if "input_ids" not in inputs:
+        raise ValueError("Missing input_ids")
+    length = inputs["input_ids"].shape[-1]
+    if length > 1536:
+        raise ValueError("Context too long")
+    return inputs.to(device), length
+
+
 def main() -> int:
     # The parent explicitly sets offline mode; repeat for stand-alone safety.
     os.environ["HF_HUB_OFFLINE"] = "1"
@@ -138,25 +161,22 @@ def main() -> int:
                 continue
             output = Path(command["output"])
             _status(status_path, {"state": "generating"})
+            phase = "tokenisation"
             try:
-                tokenized = tokenizer.apply_chat_template(
-                    command["messages"],
-                    tokenize=True,
-                    add_generation_prompt=True,
-                    return_tensors="pt",
+                inputs, prompt_length = prepare_chat_inputs(
+                    tokenizer, command["messages"], model.device
                 )
-                if tokenized.shape[-1] > 1536:
-                    raise ValueError("Context too long")
-                ids = tokenized.to(model.device)
+                phase = "génération"
                 beginning = time.monotonic()
                 with torch.inference_mode():
                     generated = model.generate(
-                        ids,
+                        **inputs,
                         max_new_tokens=command["max_new_tokens"],
                         do_sample=False,
                         pad_token_id=tokenizer.eos_token_id,
                     )
-                new_tokens = generated[0, ids.shape[-1] :]
+                phase = "décodage"
+                new_tokens = generated[0, prompt_length:]
                 answer = tokenizer.decode(new_tokens, skip_special_tokens=True)
                 _status(
                     output,
@@ -167,12 +187,20 @@ def main() -> int:
                         "elapsed_seconds": round(time.monotonic() - beginning, 2),
                     },
                 )
-            except Exception:
+            except Exception as exc:
+                # Only controlled phase and exception class, never raw exception
+                # strings, model content, user prompts or local filesystem paths.
+                error_name = type(exc).__name__[:64]
                 _status(
                     output,
                     {
                         "state": "failed",
-                        "message": "Génération impossible ou mémoire épuisée.",
+                        "phase": phase,
+                        "error_type": error_name,
+                        "message": (
+                            f"Échec à l'étape {phase} ({error_name}). "
+                            "Réessaie ou vérifie l'environnement local."
+                        ),
                     },
                 )
             finally:
