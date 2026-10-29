@@ -176,6 +176,7 @@ Pour un GPU NVIDIA, choisir au préalable **la version de PyTorch adaptée au pi
 Les routes ci-dessous utilisent les mêmes contrôles **Host local + Origin autorisée + jeton X-Heretic-Token** que le gestionnaire de téléchargement :
 
 - `GET /api/chat/models` : snapshots locaux vérifiés avec reçu de téléchargement complet.
+- `GET /api/chat/current` : retrouver la session de chargement déjà active après un rechargement de la page.
 - `POST /api/chat/start` : demande explicite de chargement (`model_id`, `revision`, `device` = `cuda` ou `cpu`).
 - `GET /api/chat/{session_id}` : état `loading`, `ready`, `failed`, `generating`, `stopped`.
 - `POST /api/chat/{session_id}/generate` : envoi d'une conversation bornée.
@@ -188,7 +189,7 @@ Les routes ci-dessous utilisent les mêmes contrôles **Host local + Origin auto
 - **Poids :** chargement uniquement depuis un dossier créé par le téléchargement du gestionnaire Studio, doté d'un reçu valide et de fichiers réguliers, sans liens symboliques. `config.json` doit annoncer le type d'architecture attendu, sans `auto_map` distant.
 - **Sécurité :** `trust_remote_code=False`, `local_files_only=True`, `use_safetensors=True`, `HF_HUB_OFFLINE=1`. Les fichiers de modèles restent des contenus externes ; ces précautions ne constituent pas une sandbox de sécurité absolue.
 - **Capacité :** une seule session chargée et une seule génération en cours ; mémoire RAM/VRAM vérifiée selon des heuristiques prudentes. La vérification ne remplace pas un vrai essai.
-- **Messages :** maximum 12 messages, 2 000 caractères par message, 6 000 caractères de contexte texte, 192 nouveaux tokens. Les messages restent dans le navigateur et ne sont pas envoyés vers un serveur externe par ce module. Aucun historique persistant n'est enregistré par l'application.
+- **Messages :** maximum 12 messages, 2 000 caractères par message, 6 000 caractères de contexte texte, 192 nouveaux tokens. Ils ne sont pas envoyés vers un serveur externe par ce module. Les réponses passent temporairement par des fichiers locaux de progression, effacés normalement après lecture ou à l'arrêt ; une panne peut laisser des résidus à supprimer dans `~/.cache/heretic-studio/jobs`.
 - **Annulation :** l'arrêt termine le processus enfant ; en cas de mémoire insuffisante, le chargement peut échouer. Une génération lente peut être interrompue en arrêtant la session.
 - **Responsabilité :** réponses expérimentales, potentiellement erronées. Ce chat ne supprime pas automatiquement les mécanismes de refus et ne modifie aucun modèle.
 - **Cloud :** cette API est destinée exclusivement à l'ordinateur local ; **ne jamais exposer le port 8765 sur Internet**. Une version serveur nécessitera une autre conception (authentification, isolation multiutilisateur, quotas, contrôle d'accès et protection de l'infrastructure).
