@@ -63,6 +63,7 @@ export function App() {
           <a className="nav-item" href="#compatibility"><span>⌁</span> Compatibilité</a>
           <a className="nav-item" href="#software"><span>⚙</span> Logiciels IA</a>
           <a className="nav-item" href="#downloads"><span>⇩</span> Télécharger</a>
+          <a className="nav-item" href="#local-chat"><span>◇</span> Chat local</a>
           <a className="nav-item" href="#roadmap"><span>◇</span> Prochaines étapes</a>
         </nav>
         <div className="sidebar-bottom"><div className="status-dot" /> Mode local · Lecture seule</div>
@@ -72,7 +73,7 @@ export function App() {
         <div className="content" id="overview">
           <div className="eyebrow">BIENVENUE DANS TON LABORATOIRE</div>
           <h1>Comprendre tes modèles.<br /><em>Maîtriser tes expériences.</em></h1>
-          <p className="intro">Heretic Studio rend l'environnement Heretic plus accessible. Consulte les ressources de ton ordinateur, explore les modèles Hugging Face et prépare un téléchargement local sécurisé. Aucun modèle n'est exécuté ni modifié.</p>
+          <p className="intro">Heretic Studio rend l'environnement Heretic plus accessible. Consulte les ressources de ton ordinateur, explore les modèles Hugging Face et prépare un téléchargement local sécurisé. Tu peux ensuite tester le chat local après une installation facultative des dépendances d'inférence. Aucune modification du modèle.</p>
           {error && <div role="alert" className="error"><strong>Backend indisponible</strong><p>{error}</p></div>}
           <div className="section-heading" id="machine"><div><span className="eyebrow">01 / DIAGNOSTIC</span><h2>Ton environnement de travail</h2></div><button onClick={() => void refresh()} disabled={loading}>{loading ? 'Analyse...' : '↻ Actualiser'}</button></div>
           <div className="grid">
@@ -87,7 +88,7 @@ export function App() {
             <article className="panel"><span className="eyebrow">03 / MOTEUR</span><h2>Heretic</h2><p>Informations lues depuis le projet Python existant.</p><dl><div><dt>Paquet</dt><dd>{project?.name ?? '—'}</dd></div><div><dt>Version du code</dt><dd>{project?.version ?? '—'}</dd></div><div><dt>Python requis</dt><dd>{project?.python ?? '—'}</dd></div></dl></article>
             <article className="panel" id="roadmap"><span className="eyebrow">04 / À VENIR</span><h2>Expérimentations</h2><p>L'exécution et la modification de modèles seront ajoutées après validation du moteur, des ressources et des mécanismes d'arrêt.</p><div className="coming"><span>Catalogue public des modèles</span><b>Consultable</b></div><div className="coming"><span>Assistant de configuration</span><b>À venir</b></div><div className="coming"><span>Comparaison des résultats</span><b>À venir</b></div></article>
           </div>
-          <footer>HERETIC STUDIO · VERSION EXPÉRIMENTALE · TÉLÉCHARGEMENT FACULTATIF · AUCUNE EXÉCUTION DE MODÈLE</footer>
+          <footer>HERETIC STUDIO · VERSION EXPÉRIMENTALE · CHAT LOCAL OPT-IN · AUCUNE MODIFICATION DE MODÈLE</footer>
         </div>
       </main>
     </div>
