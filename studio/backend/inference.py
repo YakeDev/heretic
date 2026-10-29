@@ -365,9 +365,19 @@ def generation_status(session_id: str, request_id: str) -> dict[str, object]:
             tokens = state.get("generated_tokens")
             result["generated_tokens"] = tokens if isinstance(tokens, int) else 0
         if state["state"] == "failed":
-            result["message"] = (
-                "La génération a échoué. Essaie une question plus courte."
-            )
+            phase = state.get("phase")
+            error_type = state.get("error_type")
+            if (
+                phase in {"tokenisation", "génération", "décodage"}
+                and isinstance(error_type, str)
+                and re.fullmatch(r"[A-Za-z][A-Za-z0-9_]{0,63}", error_type)
+            ):
+                result["message"] = (
+                    f"Échec pendant {phase} ({error_type}). "
+                    "Le modèle est chargé : vérifie la compatibilité des bibliothèques."
+                )
+            else:
+                result["message"] = "La génération a échoué. Vérifie l'environnement."
         return result
 
 
