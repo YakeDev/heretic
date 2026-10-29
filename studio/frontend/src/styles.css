@@ -113,3 +113,23 @@ footer{padding:40px 0 0;color:#63768a;letter-spacing:.1em;font-size:10px}
 .download-path{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
 .download-caution{border-top:1px solid #304756;margin-top:20px!important;padding-top:15px;color:#91a9b6!important}
 @media(max-width:680px){.download-panel{padding:15px}.download-review{padding:13px}.download-review dl{grid-template-columns:1fr}.download-panel>button,.download-review>button{width:100%}}
+
+.local-chat-panel{border:1px solid #2c5a61;border-radius:16px;margin-top:23px;padding:24px;background:#10242b}
+.local-chat-panel h2{margin:12px 0}.local-chat-panel>p{font-size:13px;color:#acc2c8;line-height:1.65}
+.chat-settings{display:grid;grid-template-columns:1.5fr 1fr;gap:12px;margin:20px 0}
+.chat-settings label{display:grid;gap:8px;font-size:12px;color:#b9ced2;min-width:0}
+.chat-settings select{font:inherit;color:#ecf6f6;background:#0b1720;border:1px solid #3f606d;border-radius:9px;min-width:0;max-width:100%;padding:12px}
+.chat-actions{display:flex;gap:10px;flex-wrap:wrap;margin-bottom:15px}
+.chat-actions button:last-child{background:#1f5051;border-color:#468477}
+.chat-state{border:1px solid #2b535a;background:#122c33;border-radius:9px;padding:13px;display:flex;gap:9px;align-items:center;font-size:12px;color:#c6dfdd}
+.chat-transcript{min-height:160px;max-height:560px;overflow:auto;border:1px solid #2a4655;border-radius:12px;background:#0c1b27;padding:16px;margin:17px 0;display:flex;flex-direction:column;gap:15px}
+.chat-empty,.chat-hint{font-size:12px;line-height:1.6;color:#9bb3c1}
+.chat-bubble{padding:13px 16px;border:1px solid #345669;border-radius:12px;max-width:90%;overflow-wrap:anywhere}
+.chat-bubble.user{align-self:flex-end;background:#204950}.chat-bubble.assistant{align-self:flex-start;background:#182e3f}
+.chat-bubble strong{display:block;font-size:12px;color:#9ee3d0;margin-bottom:7px}
+.chat-bubble p{margin:0;white-space:pre-wrap;color:#e1edf1;font-size:14px;line-height:1.65}
+.chat-compose{display:grid;gap:10px}.chat-compose label{font-size:12px;color:#c3d7dc}
+.chat-compose textarea{font:inherit;min-width:0;width:100%;color:#ecf5f7;background:#0a1822;border:1px solid #34586a;border-radius:10px;padding:13px;resize:vertical}
+.chat-compose textarea:focus-visible,.chat-settings select:focus-visible{outline:2px solid #72d0b9;outline-offset:2px}
+.chat-compose button{justify-self:end}.chat-compose button:disabled{opacity:.55}
+@media(max-width:680px){.local-chat-panel{padding:15px}.chat-settings{grid-template-columns:1fr}.chat-actions{display:grid}.chat-actions button,.chat-compose button{width:100%}.chat-bubble{max-width:100%}}
