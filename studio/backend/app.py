@@ -134,7 +134,9 @@ def models_search(
 def hardware_estimate(
     model_id: Annotated[
         str,
-        Query(min_length=5, max_length=120, pattern=r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"),
+        Query(
+            min_length=5, max_length=120, pattern=r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+        ),
     ],
     mode: Literal["inference", "optimization"] = "inference",
     precision: Literal["fp16", "bnb_4bit"] = "fp16",
