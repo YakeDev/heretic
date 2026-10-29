@@ -13,7 +13,10 @@ import sys
 from pathlib import Path
 
 import psutil
-from fastapi import FastAPI
+from typing import Annotated
+
+from catalog import HubUnavailable, curated_catalog, search_hugging_face
+from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 
 if sys.version_info >= (3, 11):
@@ -102,4 +105,36 @@ def project_info() -> dict[str, str]:
         "version": project["version"],
         "python": project["requires-python"],
         "mode": "Lecture seule : aucun modèle n'est chargé ou modifié.",
+    }
+
+
+@app.get("/api/models")
+def models_catalog() -> dict[str, object]:
+    return {
+        "models": curated_catalog(),
+        "notice": "Catalogue indicatif. Compatibilité, licences et accès non vérifiés.",
+    }
+
+
+@app.get("/api/models/search")
+def models_search(
+    q: Annotated[
+        str,
+        Query(
+            min_length=2,
+            max_length=64,
+            pattern=r"^[A-Za-z0-9_. /-]+$",
+        ),
+    ],
+) -> dict[str, object]:
+    try:
+        results = search_hugging_face(q)
+    except HubUnavailable as exc:
+        raise HTTPException(
+            status_code=503,
+            detail="Recherche Hugging Face indisponible. Réessayez plus tard.",
+        ) from exc
+    return {
+        "models": results,
+        "notice": "Métadonnées publiques uniquement ; aucune compatibilité garantie.",
     }
