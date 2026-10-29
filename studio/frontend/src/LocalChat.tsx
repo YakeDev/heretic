@@ -1,7 +1,20 @@
 import { useCallback, useEffect, useRef, useState, type FormEvent } from 'react';
+import { MarkdownMessage } from './MarkdownMessage';
 
 type LocalModel = { model_id: string; revision: string };
-type Message = { role: 'user' | 'assistant'; content: string };
+type ReplyStats = {
+  generated_tokens?: number;
+  elapsed_seconds?: number;
+  tokens_per_second?: number;
+  finish_reason?: 'eos' | 'length' | 'unknown';
+  max_new_tokens?: number;
+};
+type Message = { role: 'user' | 'assistant'; content: string; stats?: ReplyStats };
+type ResponseStyle = 'neutral' | 'concise' | 'pedagogical';
+type Resources = {
+  ram_available_gb?: number;
+  nvidia_gpus?: Array<{ name: string; memory_free_gb: number }>;
+};
 type Session = {
   session_id: string;
   model_id: string;
@@ -16,6 +29,10 @@ type Reply = {
   answer?: string;
   message?: string;
   generated_tokens?: number;
+  elapsed_seconds?: number;
+  tokens_per_second?: number;
+  finish_reason?: 'eos' | 'length' | 'unknown';
+  max_new_tokens?: number;
 };
 
 const BASE = 'http://127.0.0.1:8765';
@@ -25,6 +42,9 @@ export function LocalChat() {
   const [models, setModels] = useState<LocalModel[]>([]);
   const [selected, setSelected] = useState('');
   const [device, setDevice] = useState<'cuda' | 'cpu'>('cuda');
+  const [style, setStyle] = useState<ResponseStyle>('concise');
+  const [maxNewTokens, setMaxNewTokens] = useState<128 | 256 | 384 | 512>(256);
+  const [resources, setResources] = useState<Resources | null>(null);
   const [session, setSession] = useState<Session | null>(null);
   const [requestId, setRequestId] = useState('');
   const [messages, setMessages] = useState<Message[]>([]);
@@ -105,9 +125,21 @@ export function LocalChat() {
         if (response.state === 'completed') {
           setMessages((old) => [...old, {
             role: 'user', content: pendingUserText,
-          }, { role: 'assistant', content: response.answer ?? '' }]);
+          }, {
+            role: 'assistant', content: response.answer ?? '',
+            stats: {
+              generated_tokens: response.generated_tokens,
+              elapsed_seconds: response.elapsed_seconds,
+              tokens_per_second: response.tokens_per_second,
+              finish_reason: response.finish_reason,
+              max_new_tokens: response.max_new_tokens,
+            },
+          }]);
           setPendingUserText('');
-          setNotice('Réponse terminée · ' + (response.generated_tokens ?? 0) + ' nouveaux tokens.');
+          setNotice(response.finish_reason === 'length'
+            ? 'Limite de génération atteinte : la réponse peut être incomplète.'
+            : 'Réponse terminée : ' + (response.generated_tokens ?? 0) + ' nouveaux tokens.');
+          void call<Resources>('/api/system').then(setResources).catch(() => {});
         } else {
           setError(response.message ?? 'Le modèle n’a pas pu répondre.');
           // Restore the failed prompt without asking the user to retype it.
@@ -137,6 +169,7 @@ export function LocalChat() {
         device,
       });
       setSession(started);
+      void call<Resources>('/api/system').then(setResources).catch(() => {});
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Échec du démarrage.');
     } finally {
@@ -177,7 +210,11 @@ export function LocalChat() {
     try {
       const response = await call<{ request_id: string }>(
         '/api/chat/' + session.session_id + '/generate',
-        { messages: outgoing, max_new_tokens: 128 },
+        {
+          messages: outgoing.map(({ role, content }) => ({ role, content })),
+          max_new_tokens: maxNewTokens,
+          style,
+        },
       );
       setDraft('');
       setPendingUserText(text);
@@ -224,6 +261,35 @@ export function LocalChat() {
           </select>
         </label>
       </div>
+      <div className="chat-tuning" aria-label="Paramètres des réponses">
+        <label>Style de réponse
+          <select
+            value={style}
+            onChange={(event) => setStyle(event.target.value as ResponseStyle)}
+            disabled={Boolean(requestId) || busy}
+          >
+            <option value="concise">Concis — priorité aux consignes</option>
+            <option value="neutral">Standard — réponse directe</option>
+            <option value="pedagogical">Pédagogique — exemples</option>
+          </select>
+        </label>
+        <label>Longueur maximale
+          <select
+            value={maxNewTokens}
+            onChange={(event) => setMaxNewTokens(Number(event.target.value) as 128 | 256 | 384 | 512)}
+            disabled={Boolean(requestId) || busy}
+          >
+            <option value={128}>128 tokens · court</option>
+            <option value={256}>256 tokens · équilibré</option>
+            <option value={384}>384 tokens · long</option>
+            <option value={512}>512 tokens · très long (plus lent)</option>
+          </select>
+        </label>
+      </div>
+      <p className="chat-hint">
+        Ces réglages orientent la réponse mais ne garantissent ni la justesse des faits
+        ni le respect exact d’une consigne par un petit modèle.
+      </p>
       <div className="chat-actions">
         <button type="button" onClick={() => void refreshModels()} disabled={busy}>
           ↻ Actualiser les modèles téléchargés
@@ -252,7 +318,21 @@ export function LocalChat() {
         {messages.map((message, index) => (
           <div className={'chat-bubble ' + message.role} key={index}>
             <strong>{message.role === 'user' ? 'Vous' : 'Modèle IA'}</strong>
-            <p>{message.content}</p>
+            {message.role === 'assistant'
+              ? <MarkdownMessage content={message.content} />
+              : <p>{message.content}</p>}
+            {message.stats && (
+              <div className="chat-message-metrics">
+                <span>{message.stats.generated_tokens ?? '—'} tokens</span>
+                <span>{message.stats.elapsed_seconds ?? '—'} s de génération</span>
+                <span>{message.stats.tokens_per_second ?? '—'} tokens/s</span>
+                {message.stats.finish_reason === 'length' && (
+                  <strong className="chat-truncation">
+                    Limite atteinte : cette réponse peut être tronquée.
+                  </strong>
+                )}
+              </div>
+            )}
           </div>
         ))}
         {pendingUserText && (
@@ -261,6 +341,48 @@ export function LocalChat() {
           </div>
         )}
         {requestId && <p className="chat-hint">Le modèle prépare sa réponse…</p>}
+      </div>
+      {messages.some((message) => message.stats) && (
+        <div className="chat-performance" aria-label="Performances de la session">
+          <strong>Performances observées</strong>
+          <span>
+            {messages.filter((message) => message.role === 'assistant').length} réponses ·{' '}
+            {(() => {
+              const rates = messages
+                .filter((message) => message.role === 'assistant')
+                .map((message) => message.stats?.tokens_per_second)
+                .filter((value): value is number => typeof value === 'number' && value > 0);
+              return rates.length
+                ? (rates.reduce((sum, value) => sum + value, 0) / rates.length).toFixed(1) + ' tokens/s en moyenne'
+                : 'vitesse non mesurée';
+            })()}
+          </span>
+          {typeof resources?.ram_available_gb === 'number' && (
+            <span>RAM libre (instantané système) : {resources.ram_available_gb.toFixed(1)} Go</span>
+          )}
+          {resources?.nvidia_gpus?.[0] && (
+            <span>VRAM libre (instantané GPU) : {resources.nvidia_gpus[0].memory_free_gb.toFixed(1)} Go</span>
+          )}
+          <small>La vitesse inclut uniquement la génération ; les valeurs RAM/VRAM ne mesurent pas la consommation propre au modèle.</small>
+        </div>
+      )}
+      <div className="chat-evaluation">
+        <strong>Questions de test</strong>
+        <button
+          type="button"
+          disabled={Boolean(requestId) || busy}
+          onClick={() => setDraft('Explique la différence entre TCP et UDP en trois phrases maximum.')}
+        >
+          Précision et consignes
+        </button>
+        <button
+          type="button"
+          disabled={Boolean(requestId) || busy}
+          onClick={() => setDraft('Lequel des deux est généralement privilégié pour un appel vidéo en temps réel ? Pourquoi ?')}
+        >
+          Continuité du contexte
+        </button>
+        <p className="chat-hint">Ces questions aident à comparer les réponses, sans produire de score de vérité automatique.</p>
       </div>
       <form className="chat-compose" onSubmit={(event) => void send(event)}>
         <label htmlFor="chat-message">Ton message</label>
