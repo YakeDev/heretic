@@ -12,8 +12,8 @@ import re
 from pathlib import Path
 from typing import Any
 
-from catalog import CURATED_MODELS
 import psutil
+from catalog import CURATED_MODELS
 
 GIB = 1024**3
 BILLION = 1_000_000_000
