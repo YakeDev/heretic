@@ -61,7 +61,7 @@ class HubUnavailable(Exception):
 def curated_catalog() -> list[dict[str, str]]:
     """Return safe display metadata only, without contacting the Hub."""
     return [
-        {**item, "url": f"https://huggingface.co/{item['id']}"}
+        {**item, "url": f"https://huggingface.co/{item['id']}", "compatibility": "non_vérifiée"}
         for item in CURATED_MODELS
     ]
 
