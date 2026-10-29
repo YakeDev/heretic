@@ -253,6 +253,14 @@ def start_session(model_id: str, revision: str, device: str) -> dict[str, object
         return _current_status(_session)
 
 
+def current_session() -> dict[str, object] | None:
+    """Reconnect the local browser to the one active model process."""
+    with _lock:
+        if _session is None:
+            return None
+        return _current_status(_session)
+
+
 def session_status(session_id: str) -> dict[str, object]:
     with _lock:
         if _session is None or not secrets.compare_digest(
@@ -341,6 +349,11 @@ def generation_status(session_id: str, request_id: str) -> dict[str, object]:
             return {"state": "failed", "message": "Le modèle a cessé de répondre."}
         if state["state"] in {"completed", "failed"}:
             _session["request_id"] = None
+            # Keep generated text out of permanent filesystem history.
+            try:
+                path.unlink(missing_ok=True)
+            except OSError:
+                pass
         result: dict[str, object] = {
             "state": state["state"],
             "request_id": request_id,
@@ -365,6 +378,12 @@ def stop_session(session_id: str) -> dict[str, str]:
             raise InferenceError("Session introuvable.", 404)
         proc: subprocess.Popen[str] = _session["process"]
         _session = None
+        # Remove any temporary chat responses for this specific session.
+        for temporary in JOBS.glob(f"chat-{session_id}-*.json"):
+            try:
+                temporary.unlink()
+            except OSError:
+                pass
     if proc.poll() is None:
         proc.terminate()
         try:
