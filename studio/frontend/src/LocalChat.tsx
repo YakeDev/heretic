@@ -36,6 +36,9 @@ type Reply = {
   tokens_per_second?: number;
   finish_reason?: 'eos' | 'length' | 'unknown';
   max_new_tokens?: number;
+  process_ram_gib?: number;
+  torch_vram_gib?: number;
+  torch_peak_vram_gib?: number;
 };
 
 const BASE = 'http://127.0.0.1:8765';
