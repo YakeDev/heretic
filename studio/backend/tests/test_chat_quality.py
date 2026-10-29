@@ -47,10 +47,12 @@ class ChatQualityTests(unittest.TestCase):
 
     def test_unknown_style_is_rejected_by_http_schema(self) -> None:
         with self.assertRaises(ValidationError):
-            ChatGenerateRequest(
-                messages=[{"role": "user", "content": "Bonjour."}],
-                max_new_tokens=256,
-                style="user-defined",
+            ChatGenerateRequest.model_validate(
+                {
+                    "messages": [{"role": "user", "content": "Bonjour."}],
+                    "max_new_tokens": 256,
+                    "style": "user-defined",
+                }
             )
 
     def test_eos_has_priority_over_token_limit(self) -> None:
