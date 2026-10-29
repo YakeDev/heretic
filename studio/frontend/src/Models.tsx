@@ -151,10 +151,6 @@ export function Models() {
       ) : (
         <p className="model-helper">Choisis un modèle dans le catalogue avant de vérifier sa compatibilité.</p>
       )}
-      <HardwareEstimator modelId={selectedModel} />
-      <SoftwareDiagnostics />
-      <DownloadManager modelId={selectedModel} />
-      <LocalChat />
       <div className="hub-panel">
         <div>
           <span className="eyebrow">RECHERCHE EXTERNE</span>
@@ -194,6 +190,10 @@ export function Models() {
           </div>
         )}
       </div>
+      <HardwareEstimator modelId={selectedModel} />
+      <SoftwareDiagnostics />
+      <DownloadManager modelId={selectedModel} />
+      <LocalChat />
       <div className="note">ⓘ Les modèles Llama peuvent nécessiter l'acceptation d'une licence et une autorisation Meta. Ne télécharge pas de poids depuis une source inconnue.</div>
     </section>
   );
