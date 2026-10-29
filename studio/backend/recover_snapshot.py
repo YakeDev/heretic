@@ -95,9 +95,7 @@ def _matching_job(total_bytes: int, file_count: int, jobs_root: Path) -> bool:
     return False
 
 
-def verify_snapshot(
-    storage: Path = STORAGE, jobs_root: Path = JOBS
-) -> dict[str, Any]:
+def verify_snapshot(storage: Path = STORAGE, jobs_root: Path = JOBS) -> dict[str, Any]:
     """Offline SHA checks. No writes, no model import, no internet access."""
     if storage.is_symlink():
         raise RecoveryError("Le dossier de modèles est un lien symbolique.")
@@ -124,7 +122,9 @@ def verify_snapshot(
     total = 0
     for path in snapshot.rglob("*"):
         if path.is_symlink():
-            raise RecoveryError("Lien symbolique interdit dans les fichiers téléchargés.")
+            raise RecoveryError(
+                "Lien symbolique interdit dans les fichiers téléchargés."
+            )
         if path.is_file():
             relative = path.relative_to(snapshot).as_posix()
             if relative.startswith(".cache/"):
