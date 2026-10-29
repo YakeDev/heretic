@@ -13,7 +13,11 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import inference
 from app import app
 from fastapi.testclient import TestClient
-from inference_worker import resolve_transformer_factories, validate_request
+from inference_worker import (
+    prepare_chat_inputs,
+    resolve_transformer_factories,
+    validate_request,
+)
 
 
 class InferenceTests(unittest.TestCase):
@@ -277,6 +281,49 @@ class InferenceTests(unittest.TestCase):
         self.assertIs(found_model, model_type)
         self.assertIs(found_tokenizer, tokenizer_type)
         imp.assert_called_once_with("transformers")
+
+    def test_chat_preparation_supports_transformers_5_batch_encoding(self) -> None:
+        """Transformers 5 returns mappings, not positional token tensors."""
+
+        class Encoding(dict):
+            def to(self, device: str) -> "Encoding":
+                self.device = device
+                return self
+
+        tokenizer = Mock()
+        encoding = Encoding(
+            input_ids=Mock(shape=(1, 9)),
+            attention_mask=Mock(shape=(1, 9)),
+        )
+        tokenizer.apply_chat_template.return_value = encoding
+        messages = [{"role": "user", "content": "Bonjour Qwen"}]
+
+        inputs, count = prepare_chat_inputs(tokenizer, messages, "cuda:0")
+        self.assertIs(inputs, encoding)
+        self.assertEqual(count, 9)
+        self.assertEqual(encoding.device, "cuda:0")
+        tokenizer.apply_chat_template.assert_called_once_with(
+            messages,
+            tokenize=True,
+            add_generation_prompt=True,
+            return_dict=True,
+            return_tensors="pt",
+        )
+        self.assertIn("attention_mask", inputs)
+
+    def test_chat_preparation_rejects_excessive_tokenized_context(self) -> None:
+        class Encoding(dict):
+            def to(self, device: str) -> "Encoding":
+                return self
+
+        tokenizer = Mock()
+        tokenizer.apply_chat_template.return_value = Encoding(
+            input_ids=Mock(shape=(1, 1537))
+        )
+        with self.assertRaisesRegex(ValueError, "Context too long"):
+            prepare_chat_inputs(
+                tokenizer, [{"role": "user", "content": "Bonjour"}], "cpu"
+            )
 
     def test_worker_rejects_malformed_requests(self) -> None:
         self.assertFalse(validate_request({"command": "shell", "messages": []}))
