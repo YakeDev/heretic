@@ -14,7 +14,7 @@ from hardware import estimate_resources, system_resources
 
 class ResourceEstimateTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(app)
+        self.client = TestClient(app, base_url="http://127.0.0.1:8765")
         self.model_id = "meta-llama/Llama-3.2-3B-Instruct"
 
     def test_nvidia_vram_uses_best_single_gpu_not_sum(self) -> None:
