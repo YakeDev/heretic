@@ -13,7 +13,7 @@ sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
 import inference
 from app import app
 from fastapi.testclient import TestClient
-from inference_worker import validate_request
+from inference_worker import resolve_transformer_factories, validate_request
 
 
 class InferenceTests(unittest.TestCase):
@@ -253,6 +253,28 @@ class InferenceTests(unittest.TestCase):
         self.assertEqual(result.status_code, 200)
         proc.terminate.assert_called_once()
         self.assertIsNone(inference._session)
+
+    def test_transformers_lazy_classes_are_resolved_through_attributes(self) -> None:
+        """Model/tokenizer classes need not exist in vars(transformers)."""
+        model_type = object()
+        tokenizer_type = object()
+
+        class LazyModule:
+            def __getattr__(self, name: str) -> object:
+                if name == "AutoModelForCausalLM":
+                    return model_type
+                if name == "AutoTokenizer":
+                    return tokenizer_type
+                raise AttributeError(name)
+
+        lazy = LazyModule()
+        self.assertNotIn("AutoModelForCausalLM", vars(lazy))
+        self.assertNotIn("AutoTokenizer", vars(lazy))
+        with patch("inference_worker.importlib.import_module", return_value=lazy) as imp:
+            found_model, found_tokenizer = resolve_transformer_factories()
+        self.assertIs(found_model, model_type)
+        self.assertIs(found_tokenizer, tokenizer_type)
+        imp.assert_called_once_with("transformers")
 
     def test_worker_rejects_malformed_requests(self) -> None:
         self.assertFalse(validate_request({"command": "shell", "messages": []}))
