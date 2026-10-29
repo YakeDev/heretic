@@ -63,6 +63,10 @@ export function LocalChat() {
     try {
       const data = await call<{ models: LocalModel[] }>('/api/chat/models');
       setModels(data.models);
+      const existing = await call<{ session: Session | null }>('/api/chat/current');
+      if (existing.session && existing.session.state !== 'stopped') {
+        setSession(existing.session);
+      }
       setSelected((value) => data.models.some((model) =>
         model.model_id + ':' + model.revision === value
       ) ? value : '');
