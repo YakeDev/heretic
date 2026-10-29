@@ -279,6 +279,28 @@ Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot termin
 - **Les modèles Llama** peuvent nécessiter d'accepter la licence Meta et d'obtenir une autorisation d'accès. Chaque utilisateur demeure responsable de respecter la licence de ses modèles.
 - La future utilisation de Heretic pour modifier des modèles **n'est pas activée par l'interface Studio**.
 
+### Évaluer les modèles avec plusieurs données de test
+
+Pour comparer le comportement de Qwen au-delà des premiers essais TCP/UDP,
+Heretic Studio inclut une suite **locale de 16 scénarios / 21 questions**
+en français (raisonnement, reformulation, correction d'erreurs, contexte,
+JSON, traduction et connaissances techniques). Le benchmark **ne télécharge
+pas de modèle** et suppose que le chat est **déjà chargé**.
+
+Depuis `studio/backend`, pendant que Qwen est prêt :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --limit 3 --mode stable
+~~~
+
+Ensuite, lancer `--all --mode stable` et éventuellement
+`--all --mode varied` pour comparer les deux réglages. Les rapports JSON
+sont conservés **localement**, avec des références de vérification humaine.
+**Les vérifications automatiques concernent seulement des formats ou
+des réponses exactes simples, et ne donnent pas un score de vérité.**
+
+Voir [la procédure complète](studio/README.md#tester-systématiquement-la-qualité-de-qwen-sans-téléchargement).
+
 ### Tester, contribuer et suivre le développement
 
 Dans `studio/backend`, après installation de `requirements-dev.txt` :

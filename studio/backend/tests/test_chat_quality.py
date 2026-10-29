@@ -17,6 +17,7 @@ from inference_worker import (
     CHAT_STYLES,
     chat_messages,
     finish_reason,
+    generation_options,
     validate_request,
 )
 
@@ -45,6 +46,26 @@ class ChatQualityTests(unittest.TestCase):
         self.assertFalse(validate_request({**cmd, "max_new_tokens": 513}))
         self.assertFalse(validate_request({**cmd, "max_new_tokens": True}))
 
+    def test_modes_are_strictly_controlled_in_the_worker(self) -> None:
+        basic = {
+            "command": "generate",
+            "messages": [{"role": "user", "content": "Bonjour."}],
+            "max_new_tokens": 128,
+        }
+        self.assertTrue(validate_request({**basic, "generation_mode": "stable"}))
+        self.assertTrue(validate_request({**basic, "generation_mode": "varied"}))
+        self.assertFalse(validate_request({**basic, "generation_mode": "arbitrary"}))
+        self.assertFalse(validate_request({**basic, "generation_mode": ""}))
+        self.assertEqual(
+            generation_options("stable"),
+            {"do_sample": False, "repetition_penalty": 1.05},
+        )
+        varied = generation_options("varied")
+        self.assertTrue(varied["do_sample"])
+        self.assertEqual(varied["temperature"], 0.7)
+        with self.assertRaises(ValueError):
+            generation_options("unknown")
+
     def test_unknown_style_is_rejected_by_http_schema(self) -> None:
         with self.assertRaises(ValidationError):
             ChatGenerateRequest.model_validate(
@@ -52,6 +73,15 @@ class ChatQualityTests(unittest.TestCase):
                     "messages": [{"role": "user", "content": "Bonjour."}],
                     "max_new_tokens": 256,
                     "style": "user-defined",
+                }
+            )
+
+    def test_reject_unsupported_generation_mode_in_http_schema(self) -> None:
+        with self.assertRaises(ValidationError):
+            ChatGenerateRequest.model_validate(
+                {
+                    "messages": [{"role": "user", "content": "Bonjour."}],
+                    "generation_mode": "untrusted",
                 }
             )
 

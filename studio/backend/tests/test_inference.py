@@ -264,6 +264,24 @@ class InferenceTests(unittest.TestCase):
         self.assertNotIn("SECRET", response["message"])
         self.assertFalse(destination.exists())
 
+    def test_generate_writes_a_bounded_sampling_preset_to_worker(self) -> None:
+        session_id, proc = self._start_mock_session()
+        assert inference._session is not None
+        Path(inference._session["status_file"]).write_text(
+            '{"state":"ready"}', encoding="utf-8"
+        )
+        sent = self.client.post(
+            "/api/chat/" + session_id + "/generate",
+            headers=self.headers,
+            json={
+                "messages": [{"role": "user", "content": "Reformule ceci."}],
+                "max_new_tokens": 96,
+                "generation_mode": "varied",
+            },
+        )
+        self.assertEqual(sent.status_code, 200, sent.text)
+        self.assertIn('"generation_mode": "varied"', proc.stdin.getvalue())
+
     def test_reject_excessive_context_and_oversized_output(self) -> None:
         session_id, _ = self._start_mock_session()
         assert inference._session is not None

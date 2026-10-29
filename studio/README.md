@@ -213,7 +213,71 @@ exceptions brutes ni le contenu de la conversation. Le texte de la question
 reste dans le champ de saisie pour un nouvel essai. Les tests automatisés
 simulent la génération et ne remplacent pas un essai réel sur la carte graphique.
 
-### Améliorations du chat local : longueur, Markdown et métriques
+#
+## Tester systématiquement la qualité de Qwen (sans téléchargement)
+
+La réussite technique (chargement, réponse et métriques) ne signifie **pas** que
+les réponses sont correctes. Nous avons ajouté un mini-benchmark **local et
+reproductible**, composé de **16 scénarios / 21 questions** en français :
+TCP/UDP, correction d'une erreur, reformulation, contexte, logique, traduction,
+JSON, grammaire, code, calculs et reconnaissance de l'incertitude.
+
+Ce sont des **données de test rédigées pour le projet** dans
+`studio/backend/benchmarks/french_quality_v1.json`. Elles ne sont ni un
+corpus d'entraînement de Qwen, ni une étude représentative de sa fiabilité.
+Le script ne fait **aucune requête Internet, aucune installation et aucun
+téléchargement de modèle**. Il réutilise seulement le modèle **déjà chargé**
+dans Heretic Studio.
+
+1. Lancer le backend et le frontend, ouvrir **Chat local** et **Charger le
+   modèle** Qwen ; attendre « Modèle prêt à répondre ».
+2. Dans un **troisième terminal**, depuis `studio/backend`, exécuter :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --limit 3 --mode stable
+~~~
+
+3. Pour toute la batterie en mode déterministe (plus long) :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --all --mode stable
+~~~
+
+4. Pour comparer les formulations avec échantillonnage contrôlé :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --all --mode varied
+~~~
+
+Sous Linux/macOS, remplacer `.\.venv\Scripts\python.exe` par
+`./.venv/bin/python`. On peut aussi préciser `--max-tokens 64` ou
+`--limit 5` pour réduire le temps de calcul. **N'envoyer aucune autre
+question dans le chat pendant l'exécution du script**, car le backend ne
+permet qu'une génération à la fois.
+
+Chaque exécution enregistre son rapport **sur l'ordinateur uniquement** sous
+`~/.cache/heretic-studio/benchmarks/`, avec les questions, réponses, temps,
+tokens, évaluations de forme et **critères de correction humaine**. Le rapport
+peut contenir les réponses du modèle : ne pas y ajouter des données privées.
+Les contrôles automatiques vérifient uniquement certains formats simples
+(nombre exact, JSON, présence d'un mot, nombre approximatif de phrases ou
+réponse non identique) ; **ils ne constituent pas un score d'exactitude
+factuelle**. Lire les réponses avec leurs références manuelles avant de
+conclure qu'un modèle est bon ou mauvais.
+
+### Chat : nouvelle conversation et modes de génération
+
+- **Nouvelle conversation** : efface l'historique affiché et envoyé au
+  modèle, sans décharger les poids ni relancer PyTorch. Accessible lorsque
+  le modèle est prêt et qu'aucune réponse n'est en cours.
+- **Stable** : génération déterministe, adaptée à la reproductibilité.
+- **Varié** : température `0.7`, `top_p=0.9`, pénalité de répétition `1.08`.
+  Il peut varier les formulations, **sans corriger à lui seul les faits**.
+- Une comparaison prudente des dernières réponses affiche un avertissement
+  si un texte se répète presque à l'identique. Cet avertissement ne dit
+  pas si la réponse est vraie.
+
+## Améliorations du chat local : longueur, Markdown et métriques
 
 - Trois styles de consigne **fixes et locaux** : concis, standard, pédagogique.
   Ils guident le modèle mais **n'assurent pas** qu'il respectera le nombre de
