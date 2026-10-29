@@ -19,7 +19,11 @@ from typing import Any
 
 API = "http://127.0.0.1:8765"
 ORIGIN = "http://127.0.0.1:5173"
-SUITE = Path(__file__).with_name("benchmarks") / "french_quality_v1.json"
+DATASETS = {
+    "v1": Path(__file__).with_name("benchmarks") / "french_quality_v1.json",
+    "v2": Path(__file__).with_name("benchmarks") / "french_quality_v2.json",
+}
+SUITE = DATASETS["v2"]
 # Bypass environment/system proxies so no prompt can be routed away from loopback.
 LOCAL_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
@@ -217,6 +221,10 @@ def main() -> int:
     parser.add_argument(
         "--limit", type=int, default=5, help="Number of cases for a short run (1 to 50)"
     )
+    parser.add_argument(
+        "--suite", choices=("v1", "v2"), default="v2",
+        help="Version of the locally bundled evaluation dataset",
+    )
     parser.add_argument("--mode", choices=("stable", "varied"), default="stable")
     parser.add_argument("--max-tokens", type=int, default=128, choices=(64, 128, 256))
     parser.add_argument(
@@ -225,7 +233,8 @@ def main() -> int:
     args = parser.parse_args()
     if not 1 <= args.limit <= 50:
         parser.error("--limit must be between 1 and 50")
-    cases = load_cases()
+    suite = DATASETS[args.suite]
+    cases = load_cases(suite)
     selected = cases if args.all else cases[: args.limit]
     try:
         token = api_request("/api/downloads/session")["token"]
@@ -247,7 +256,7 @@ def main() -> int:
         turn["automatic_form_check"] for case in results for turn in case["turns"]
     ]
     report = {
-        "dataset": str(SUITE.name),
+        "dataset": suite.name,
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
         "model_id": session.get("model_id"),
         "revision": session.get("revision"),
@@ -269,6 +278,8 @@ def main() -> int:
     }
     output = args.output or Path.home() / ".cache" / "heretic-studio" / "benchmarks" / (
         "french-quality-"
+        + args.suite
+        + "-"
         + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         + ".json"
     )

@@ -17,6 +17,17 @@ class BenchmarkChatTests(unittest.TestCase):
         self.assertGreaterEqual(len({case["category"] for case in cases}), 7)
         self.assertTrue(any(len(case["turns"]) > 1 for case in cases))
 
+    def test_v1_is_preserved_and_v2_removes_misleading_prompt(self) -> None:
+        old_cases = benchmark_chat.load_cases(benchmark_chat.DATASETS["v1"])
+        new_cases = benchmark_chat.load_cases(benchmark_chat.DATASETS["v2"])
+        self.assertEqual(len(old_cases), len(new_cases))
+        corrected = next(
+            case for case in new_cases if case["id"] == "tcp-udp-correction"
+        )
+        self.assertNotIn("check", corrected["turns"][0])
+        self.assertNotIn("Tu affirmes", corrected["turns"][1]["prompt"])
+        self.assertIn("confidentialité", corrected["turns"][1]["prompt"])
+
     def test_only_format_not_factual_claims_are_autoscored(self) -> None:
         check = benchmark_chat.automatic_check
         self.assertEqual(check({"type": "number", "value": 42}, "42", ""), "pass")

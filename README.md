@@ -281,6 +281,11 @@ Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot termin
 
 ### Évaluer les modèles avec plusieurs données de test
 
+La suite par défaut est désormais `french_quality_v2.json` : sa
+question de correction ne présuppose plus un propos non tenu par le
+modèle, et la présence du seul mot TCP ne vaut plus réussite formelle.
+Les premiers résultats restent reproductibles avec `--suite v1`.
+
 Pour comparer le comportement de Qwen au-delà des premiers essais TCP/UDP,
 Heretic Studio inclut une suite **locale de 16 scénarios / 21 questions**
 en français (raisonnement, reformulation, correction d'erreurs, contexte,

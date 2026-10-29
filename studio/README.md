@@ -223,7 +223,10 @@ TCP/UDP, correction d'une erreur, reformulation, contexte, logique, traduction,
 JSON, grammaire, code, calculs et reconnaissance de l'incertitude.
 
 Ce sont des **données de test rédigées pour le projet** dans
-`studio/backend/benchmarks/french_quality_v1.json`. Elles ne sont ni un
+`studio/backend/benchmarks/french_quality_v2.json` (par défaut).
+L'ancienne suite `french_quality_v1.json` est conservée pour reproduire
+les premiers résultats (avec son scénario de correction imparfait).
+La commande `--suite v1` permet de la rejouer. Elles ne sont ni un
 corpus d'entraînement de Qwen, ni une étude représentative de sa fiabilité.
 Le script ne fait **aucune requête Internet, aucune installation et aucun
 téléchargement de modèle**. Il réutilise seulement le modèle **déjà chargé**
@@ -254,6 +257,11 @@ Sous Linux/macOS, remplacer `.\.venv\Scripts\python.exe` par
 `--limit 5` pour réduire le temps de calcul. **N'envoyer aucune autre
 question dans le chat pendant l'exécution du script**, car le backend ne
 permet qu'une génération à la fois.
+
+Dans la v2, le deuxième tour TCP/UDP ne prête plus au modèle une
+affirmation qu'il n'a pas forcément faite, et le premier tour n'est plus
+automatiquement « réussi » parce que le texte contient le mot TCP.
+Ne pas comparer directement les scores formels de v1 et de v2.
 
 Chaque exécution enregistre son rapport **sur l'ordinateur uniquement** sous
 `~/.cache/heretic-studio/benchmarks/`, avec les questions, réponses, temps,
