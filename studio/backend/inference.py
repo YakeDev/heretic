@@ -380,6 +380,10 @@ def generation_status(session_id: str, request_id: str) -> dict[str, object]:
             maximum = state.get("max_new_tokens")
             if type(maximum) is int and 1 <= maximum <= MAX_NEW_TOKENS:
                 result["max_new_tokens"] = maximum
+            for key in ("process_ram_gib", "torch_vram_gib", "torch_peak_vram_gib"):
+                memory = state.get(key)
+                if isinstance(memory, (int, float)) and 0 <= memory <= 1024:
+                    result[key] = memory
         if state["state"] == "failed":
             phase = state.get("phase")
             error_type = state.get("error_type")
