@@ -165,7 +165,7 @@ Pour un GPU NVIDIA, choisir au préalable **la version de PyTorch adaptée au pi
 
 1. Ouvrir Heretic Studio sur `http://127.0.0.1:5173` avec le backend local démarré sur `127.0.0.1:8765`.
 2. Sélectionner un modèle du catalogue, puis effectuer le **téléchargement explicitement confirmé**. Le téléchargement doit être **complet** pour créer une attestation locale de snapshot.
-3. Dans la section **Premier chat local**, cliquer « Actualiser les modèles téléchargés ».
+3. Pour un premier essai sur un ordinateur sans GPU puissant, privilégier **Qwen2.5-0.5B-Instruct**, plus léger que Llama 3B ou 8B. Dans la section **Premier chat local**, cliquer « Actualiser les modèles téléchargés ».
 4. Choisir le modèle et son matériel (**GPU NVIDIA CUDA**, ou **CPU expérimental et potentiellement très lent**). Les ressources sont comparées à un budget approximatif avant le démarrage.
 5. Cliquer « Charger le modèle ». Le processus isolé charge les poids `.safetensors`, sans connexion réseau, sans exécution de code distant et sans faire d'optimisation Heretic.
 6. Lorsque l'état indique **ready**, envoyer une question de test, par exemple « Explique-moi TCP et UDP ».
