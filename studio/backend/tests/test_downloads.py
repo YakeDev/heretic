@@ -21,7 +21,7 @@ class DownloadTests(unittest.TestCase):
     def setUp(self) -> None:
         self.temp = tempfile.TemporaryDirectory()
         self.addCleanup(self.temp.cleanup)
-        self.client = TestClient(app)
+        self.client = TestClient(app, base_url="http://127.0.0.1:8765")
         self.model = "Qwen/Qwen3-4B-Instruct-2507"
         self.origin = "http://127.0.0.1:5173"
         self.headers = {"Origin": self.origin, "X-Heretic-Token": downloads.nonce()}
