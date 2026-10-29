@@ -16,6 +16,7 @@ from catalog import HubUnavailable, curated_catalog, search_hugging_face
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
 from hardware import estimate_resources, system_resources
+from software import inspect_software
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -152,3 +153,9 @@ def hardware_estimate(
             detail="Modèle absent du catalogue : aucune estimation fiable disponible.",
         )
     return estimate
+
+
+@app.get("/api/hardware/software")
+def software_compatibility() -> dict[str, object]:
+    """Run explicit, bounded local diagnostics without loading a model."""
+    return inspect_software()
