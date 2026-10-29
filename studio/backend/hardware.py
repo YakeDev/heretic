@@ -23,7 +23,9 @@ VALID_MODES = {"inference", "optimization"}
 VALID_PRECISIONS = {"fp16", "bnb_4bit"}
 
 
-def system_resources(root: Path, nvidia_gpus: list[dict[str, object]]) -> dict[str, object]:
+def system_resources(
+    root: Path, nvidia_gpus: list[dict[str, object]]
+) -> dict[str, object]:
     """Probe local OS resources; non-NVIDIA accelerators are NOT ruled out."""
     ram = psutil.virtual_memory()
     try:
@@ -45,7 +47,8 @@ def system_resources(root: Path, nvidia_gpus: list[dict[str, object]]) -> dict[s
             "Un résultat vide ne signifie pas qu'aucun GPU ne fonctionne."
         ),
         "apple_silicon_possible": (
-            platform.system() == "Darwin" and platform.machine().lower() in {"arm64", "aarch64"}
+            platform.system() == "Darwin"
+            and platform.machine().lower() in {"arm64", "aarch64"}
         ),
     }
 
@@ -112,8 +115,18 @@ def estimate_resources(
     required_ram_gib = max(8, weight_gib * 1.3 + 4)
 
     gpus = _available_gpus(info)
-    best_free = max((free for g in gpus if (free := _number(g.get("memory_free_gb"))) is not None), default=None)
-    best_total = max((total for g in gpus if (total := _number(g.get("memory_total_gb"))) is not None), default=None)
+    best_free = max(
+        (free for g in gpus if (free := _number(g.get("memory_free_gb"))) is not None),
+        default=None,
+    )
+    best_total = max(
+        (
+            total
+            for g in gpus
+            if (total := _number(g.get("memory_total_gb"))) is not None
+        ),
+        default=None,
+    )
     ram_available = info.get("ram_available_gb")
     disk_available = info.get("disk_available_gb")
 
@@ -121,17 +134,23 @@ def estimate_resources(
     reasons: list[str] = []
     if isinstance(disk_available, (int, float)) and disk_available < estimated_disk_gib:
         status = "probably_insufficient"
-        reasons.append("L'espace disque disponible est inférieur au budget de stockage estimé.")
+        reasons.append(
+            "L'espace disque disponible est inférieur au budget de stockage estimé."
+        )
     if best_free is None:
         reasons.append(
             "VRAM NVIDIA non détectée : le mode CPU, AMD, Apple ou déporté n'est pas évalué."
         )
     elif best_free < recommended_gpu_gib:
         status = "probably_insufficient"
-        reasons.append("La VRAM libre d'un GPU NVIDIA est inférieure à l'estimation prudente.")
+        reasons.append(
+            "La VRAM libre d'un GPU NVIDIA est inférieure à l'estimation prudente."
+        )
     elif status != "probably_insufficient":
         status = "candidate_only"
-        reasons.append("La VRAM libre paraît suffisante selon cette estimation, sans garantie.")
+        reasons.append(
+            "La VRAM libre paraît suffisante selon cette estimation, sans garantie."
+        )
     if isinstance(ram_available, (int, float)) and ram_available < required_ram_gib:
         reasons.append(
             "La RAM disponible est basse pour cette estimation : risque de lenteur ou d'échec."
