@@ -194,6 +194,22 @@ Les routes ci-dessous utilisent les mêmes contrôles **Host local + Origin auto
 - **Responsabilité :** réponses expérimentales, potentiellement erronées. Ce chat ne supprime pas automatiquement les mécanismes de refus et ne modifie aucun modèle.
 - **Cloud :** cette API est destinée exclusivement à l'ordinateur local ; **ne jamais exposer le port 8765 sur Internet**. Une version serveur nécessitera une autre conception (authentification, isolation multiutilisateur, quotas, contrôle d'accès et protection de l'infrastructure).
 
+### Compatibilité Transformers 5 — génération de chat
+
+À partir des versions récentes de Transformers, `apply_chat_template(..., return_tensors="pt")`
+peut renvoyer un objet `BatchEncoding` contenant les entrées nommées
+`input_ids` et `attention_mask`, et non un tenseur unique.
+Le chat prépare désormais explicitement `return_dict=True` et passe les
+entrées à `model.generate(**inputs)`, au lieu de les envoyer en argument
+positionnel. Cette correction ne nécessite **aucun nouveau téléchargement du
+modèle ni réinstallation de PyTorch**.
+
+Si le modèle affiche `ready` mais que la réponse échoue, la zone rouge
+indique maintenant **l'étape et la classe d'erreur** sans afficher les
+exceptions brutes ni le contenu de la conversation. Le texte de la question
+reste dans le champ de saisie pour un nouvel essai. Les tests automatisés
+simulent la génération et ne remplacent pas un essai réel sur la carte graphique.
+
 ### Tests
 
 Les tests automatisés vérifient les conditions de sécurité et simulent le processus enfant ; **ils ne chargent pas de vrai modèle**. La dernière étape de recette est un essai manuel de téléchargement + démarrage + conversation + arrêt sur un GPU compatible.
