@@ -13,6 +13,7 @@ import sys
 from pathlib import Path
 from typing import Annotated, Literal
 
+from catalog import HubUnavailable, curated_catalog, search_hugging_face
 from downloads import (
     DownloadError,
     cancel_download,
@@ -21,8 +22,6 @@ from downloads import (
     preview_download,
     start_download,
 )
-
-from catalog import HubUnavailable, curated_catalog, search_hugging_face
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from hardware import estimate_resources, system_resources
