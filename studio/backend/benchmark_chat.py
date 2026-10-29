@@ -22,7 +22,9 @@ ORIGIN = "http://127.0.0.1:5173"
 SUITE = Path(__file__).with_name("benchmarks") / "french_quality_v1.json"
 
 
-def api_request(path: str, token: str = "", payload: dict[str, Any] | None = None) -> dict[str, Any]:
+def api_request(
+    path: str, token: str = "", payload: dict[str, Any] | None = None
+) -> dict[str, Any]:
     """Only call the fixed local backend; never accept a custom remote URL."""
     if not path.startswith("/api/") or "://" in path or ".." in path:
         raise ValueError("Invalid API path")
@@ -70,7 +72,12 @@ def automatic_check(check: dict[str, Any] | None, answer: str, previous: str) ->
             parsed = json.loads(answer.strip())
         except (TypeError, ValueError):
             return "fail"
-        return "pass" if isinstance(parsed, dict) and all(parsed.get(k) == v for k, v in target.items()) else "fail"
+        return (
+            "pass"
+            if isinstance(parsed, dict)
+            and all(parsed.get(k) == v for k, v in target.items())
+            else "fail"
+        )
     if kind == "different":
         left, right = normalized(answer), normalized(previous)
         if not left or not right:
@@ -111,14 +118,18 @@ def load_cases(path: Path = SUITE) -> list[dict[str, Any]]:
     return cases
 
 
-def wait_for_reply(session_id: str, request_id: str, token: str, timeout: float = 180) -> dict[str, Any]:
+def wait_for_reply(
+    session_id: str, request_id: str, token: str, timeout: float = 180
+) -> dict[str, Any]:
     end = time.monotonic() + timeout
     while time.monotonic() < end:
         status = api_request(f"/api/chat/{session_id}/responses/{request_id}", token)
         if status.get("state") in {"completed", "failed"}:
             return status
         time.sleep(1.5)
-    raise RuntimeError("Generation timed out. Stop the model manually in Studio before retrying.")
+    raise RuntimeError(
+        "Generation timed out. Stop the model manually in Studio before retrying."
+    )
 
 
 def run_cases(
@@ -145,11 +156,19 @@ def run_cases(
                 },
             )
             request_id = started.get("request_id")
-            if not isinstance(request_id, str) or not re.fullmatch(r"[a-f0-9]{32}", request_id):
+            if not isinstance(request_id, str) or not re.fullmatch(
+                r"[a-f0-9]{32}", request_id
+            ):
                 raise RuntimeError("Invalid generation request ID")
             reply = wait_for_reply(session_id, request_id, token)
-            answer = reply.get("answer", "") if reply.get("state") == "completed" else ""
-            checked = automatic_check(turn.get("check"), answer, previous) if answer else "no_answer"
+            answer = (
+                reply.get("answer", "") if reply.get("state") == "completed" else ""
+            )
+            checked = (
+                automatic_check(turn.get("check"), answer, previous)
+                if answer
+                else "no_answer"
+            )
             turns.append(
                 {
                     "prompt": turn["prompt"],
@@ -160,24 +179,47 @@ def run_cases(
                     "tokens": reply.get("generated_tokens"),
                     "elapsed_seconds": reply.get("elapsed_seconds"),
                     "tokens_per_second": reply.get("tokens_per_second"),
-                    "error": reply.get("message") if reply.get("state") != "completed" else None,
+                    "error": reply.get("message")
+                    if reply.get("state") != "completed"
+                    else None,
                 }
             )
             if reply.get("state") != "completed":
                 break
-            history = [*history, {"role": "user", "content": turn["prompt"]}, {"role": "assistant", "content": answer}]
+            history = [
+                *history,
+                {"role": "user", "content": turn["prompt"]},
+                {"role": "assistant", "content": answer},
+            ]
             previous = answer
-        results.append({"id": case["id"], "category": case["category"], "title": case["title"], "turns": turns})
+        results.append(
+            {
+                "id": case["id"],
+                "category": case["category"],
+                "title": case["title"],
+                "turns": turns,
+            }
+        )
     return results
 
 
 def main() -> int:
-    parser = argparse.ArgumentParser(description="Offline Qwen/Heretic Studio quality checks")
-    parser.add_argument("--all", action="store_true", help="Run the full suite instead of the first 5 cases")
-    parser.add_argument("--limit", type=int, default=5, help="Number of cases for a short run (1 to 50)")
+    parser = argparse.ArgumentParser(
+        description="Offline Qwen/Heretic Studio quality checks"
+    )
+    parser.add_argument(
+        "--all",
+        action="store_true",
+        help="Run the full suite instead of the first 5 cases",
+    )
+    parser.add_argument(
+        "--limit", type=int, default=5, help="Number of cases for a short run (1 to 50)"
+    )
     parser.add_argument("--mode", choices=("stable", "varied"), default="stable")
     parser.add_argument("--max-tokens", type=int, default=128, choices=(64, 128, 256))
-    parser.add_argument("--output", type=Path, help="Local JSON report path (contains model answers)")
+    parser.add_argument(
+        "--output", type=Path, help="Local JSON report path (contains model answers)"
+    )
     args = parser.parse_args()
     if not 1 <= args.limit <= 50:
         parser.error("--limit must be between 1 and 50")
@@ -191,13 +233,17 @@ def main() -> int:
                 "Load Qwen from the Chat local interface and wait for 'Modèle prêt à répondre'."
             )
         session_id = session.get("session_id")
-        if not isinstance(session_id, str) or not re.fullmatch(r"[a-f0-9]{32}", session_id):
+        if not isinstance(session_id, str) or not re.fullmatch(
+            r"[a-f0-9]{32}", session_id
+        ):
             raise RuntimeError("No valid local model session")
         print(f"Local loaded model: {session.get('model_id', '?')}")
         results = run_cases(selected, session_id, token, args.mode, args.max_tokens)
     except (KeyError, TypeError, ValueError, RuntimeError) as exc:
         parser.exit(1, f"Benchmark interrupted: {exc}\n")
-    grades = [turn["automatic_form_check"] for case in results for turn in case["turns"]]
+    grades = [
+        turn["automatic_form_check"] for case in results for turn in case["turns"]
+    ]
     report = {
         "dataset": str(SUITE.name),
         "generated_at_utc": datetime.now(timezone.utc).isoformat(),
@@ -220,15 +266,21 @@ def main() -> int:
         "results": results,
     }
     output = args.output or Path.home() / ".cache" / "heretic-studio" / "benchmarks" / (
-        "french-quality-" + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S") + ".json"
+        "french-quality-"
+        + datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
+        + ".json"
     )
     output.parent.mkdir(parents=True, exist_ok=True)
     if output.exists():
         parser.exit(1, "Output path already exists. Choose a fresh path.\n")
-    output.write_text(json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8")
+    output.write_text(
+        json.dumps(report, ensure_ascii=False, indent=2) + "\n", encoding="utf-8"
+    )
     print(f"Report saved locally: {output}")
     print("Formal checks:", report["summary"])
-    print("Factual correctness: NOT scored automatically; review the references in the JSON.")
+    print(
+        "Factual correctness: NOT scored automatically; review the references in the JSON."
+    )
     return 0
 
 

@@ -22,9 +22,15 @@ class BenchmarkChatTests(unittest.TestCase):
         check = benchmark_chat.automatic_check
         self.assertEqual(check({"type": "number", "value": 42}, "42", ""), "pass")
         self.assertEqual(check({"type": "number", "value": 42}, "41", ""), "fail")
-        self.assertEqual(check({"type": "contains", "value": "AZUR-47"}, "Code: AZUR-47", ""), "pass")
         self.assertEqual(
-            check({"type": "json_fields", "value": {"ville": "Lubumbashi"}}, '{"ville":"Lubumbashi"}', ""),
+            check({"type": "contains", "value": "AZUR-47"}, "Code: AZUR-47", ""), "pass"
+        )
+        self.assertEqual(
+            check(
+                {"type": "json_fields", "value": {"ville": "Lubumbashi"}},
+                '{"ville":"Lubumbashi"}',
+                "",
+            ),
             "pass",
         )
         self.assertEqual(check({"type": "different"}, "Bonjour.", "Bonjour."), "fail")
@@ -37,24 +43,41 @@ class BenchmarkChatTests(unittest.TestCase):
 
         def fake_api(path, token="", payload=None):
             if path.endswith("/generate"):
+                assert payload is not None
                 calls.append(payload["messages"])
                 return {"request_id": "a" * 32}
-            return {"state": "completed", "answer": next(responses), "generated_tokens": 2}
+            return {
+                "state": "completed",
+                "answer": next(responses),
+                "generated_tokens": 2,
+            }
 
         fixtures = [
-            {"id": "memory", "category": "context", "title": "Memory",
-             "turns": [
-                 {"prompt": "Souviens-toi d'AZUR-47", "review": "Memory"},
-                 {"prompt": "Quel est le code ?", "review": "AZUR-47"},
-             ]},
-            {"id": "math", "category": "math", "title": "Math",
-             "turns": [{"prompt": "17+25 ?", "review": "42"}]},
+            {
+                "id": "memory",
+                "category": "context",
+                "title": "Memory",
+                "turns": [
+                    {"prompt": "Souviens-toi d'AZUR-47", "review": "Memory"},
+                    {"prompt": "Quel est le code ?", "review": "AZUR-47"},
+                ],
+            },
+            {
+                "id": "math",
+                "category": "math",
+                "title": "Math",
+                "turns": [{"prompt": "17+25 ?", "review": "42"}],
+            },
         ]
         with patch.object(benchmark_chat, "api_request", side_effect=fake_api):
-            results = benchmark_chat.run_cases(fixtures, "b" * 32, "token", "stable", 128)
+            results = benchmark_chat.run_cases(
+                fixtures, "b" * 32, "token", "stable", 128
+            )
         self.assertEqual(len(results), 2)
         self.assertEqual(len(calls), 3)
-        self.assertEqual([item["role"] for item in calls[1]], ["user", "assistant", "user"])
+        self.assertEqual(
+            [item["role"] for item in calls[1]], ["user", "assistant", "user"]
+        )
         self.assertEqual(calls[2], [{"role": "user", "content": "17+25 ?"}])
         self.assertEqual(calls[0][0]["content"], "Souviens-toi d'AZUR-47")
 
