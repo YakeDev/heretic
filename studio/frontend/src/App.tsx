@@ -178,7 +178,7 @@ export function App() {
             <span className="topbar-overline">TON ESPACE DE TRAVAIL</span>
             <strong>Laboratoire IA</strong>
           </div>
-          <div className={'connection-status' + (!connected && !loading ? ' unavailable' : '')} role="status" aria-live="polite">
+          <div className={'connection-status' + (loading ? ' pending' : !connected ? ' unavailable' : '')} role="status" aria-live="polite">
             <span className="status-dot" aria-hidden="true" />
             <span>{statusText}</span>
           </div>
