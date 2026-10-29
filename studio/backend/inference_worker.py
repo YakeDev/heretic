@@ -75,8 +75,9 @@ def main() -> int:
         # Optional heavy dependencies: intentionally installed separately from Studio.
         torch = importlib.import_module("torch")
         transformers = importlib.import_module("transformers")
-        AutoModelForCausalLM = getattr(transformers, "AutoModelForCausalLM")
-        AutoTokenizer = getattr(transformers, "AutoTokenizer")
+        exports = vars(transformers)
+        AutoModelForCausalLM = exports["AutoModelForCausalLM"]
+        AutoTokenizer = exports["AutoTokenizer"]
 
         if device == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA unavailable")
@@ -145,7 +146,7 @@ def main() -> int:
                     {
                         "state": "completed",
                         "answer": answer[:12000],
-                        "generated_tokens": int(len(new_tokens)),
+                        "generated_tokens": len(new_tokens),
                         "elapsed_seconds": round(time.monotonic() - beginning, 2),
                     },
                 )
