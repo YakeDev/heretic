@@ -17,7 +17,25 @@ from typing import Any
 
 MAX_MESSAGES = 12
 MAX_CHARACTERS = 6000
-MAX_TOKENS = 192
+MAX_TOKENS = 512
+CHAT_STYLES = {
+    "neutral": (
+        "Tu es un assistant en français. Réponds directement à la question, "
+        "respecte le nombre de phrases demandé et signale ton incertitude "
+        "plutôt que d'inventer."
+    ),
+    "concise": (
+        "Réponds en français, de façon brève et précise. Respecte strictement "
+        "les contraintes de longueur et le nombre de phrases demandé. "
+        "Si tu n'es pas certain, dis-le."
+    ),
+    "pedagogical": (
+        "Explique en français avec des termes exacts et des exemples simples. "
+        "Respecte toute limite de longueur ou de phrases donnée par l'utilisateur. "
+        "N'invente pas les faits dont tu n'es pas certain."
+    ),
+}
+
 
 
 def resolve_transformer_factories() -> tuple[Any, Any]:
@@ -48,7 +66,10 @@ def validate_request(command: object) -> bool:
         return False
     messages = command.get("messages")
     tokens = command.get("max_new_tokens")
-    if not isinstance(tokens, int) or not 1 <= tokens <= MAX_TOKENS:
+    style = command.get("style", "neutral")
+    if style not in CHAT_STYLES:
+        return False
+    if type(tokens) is not int or not 1 <= tokens <= MAX_TOKENS:
         return False
     if not isinstance(messages, list) or not 1 <= len(messages) <= MAX_MESSAGES:
         return False
@@ -86,6 +107,28 @@ def prepare_chat_inputs(
     if length > 1536:
         raise ValueError("Context too long")
     return inputs.to(device), length
+
+
+def finish_reason(
+    count: int, maximum: int, last_token: int, eos_ids: object
+) -> str:
+    """Distinguish reaching the generation cap from EOS termination."""
+    if isinstance(eos_ids, int):
+        endings = {eos_ids}
+    elif isinstance(eos_ids, (list, tuple)):
+        endings = {x for x in eos_ids if isinstance(x, int)}
+    else:
+        endings = set()
+    if last_token in endings:
+        return "eos"
+    if count >= maximum:
+        return "length"
+    return "unknown"
+
+
+def chat_messages(messages: list[dict[str, str]], style: str) -> list[dict[str, str]]:
+    """Prepend a fixed, local instruction; never accept arbitrary system roles."""
+    return [{"role": "system", "content": CHAT_STYLES[style]}, *messages]
 
 
 def main() -> int:
@@ -164,7 +207,9 @@ def main() -> int:
             phase = "tokenisation"
             try:
                 inputs, prompt_length = prepare_chat_inputs(
-                    tokenizer, command["messages"], model.device
+                    tokenizer,
+                    chat_messages(command["messages"], command.get("style", "neutral")),
+                    model.device
                 )
                 phase = "génération"
                 beginning = time.monotonic()
@@ -178,13 +223,24 @@ def main() -> int:
                 phase = "décodage"
                 new_tokens = generated[0, prompt_length:]
                 answer = tokenizer.decode(new_tokens, skip_special_tokens=True)
+                elapsed = time.monotonic() - beginning
+                count = len(new_tokens)
+                ending = getattr(model.generation_config, "eos_token_id", None)
+                if ending is None:
+                    ending = tokenizer.eos_token_id
+                reason = finish_reason(
+                    count, command["max_new_tokens"], new_tokens[-1].item(), ending
+                ) if count else "unknown"
                 _status(
                     output,
                     {
                         "state": "completed",
                         "answer": answer[:12000],
-                        "generated_tokens": len(new_tokens),
-                        "elapsed_seconds": round(time.monotonic() - beginning, 2),
+                        "generated_tokens": count,
+                        "elapsed_seconds": round(elapsed, 2),
+                        "tokens_per_second": round(count / elapsed, 1) if elapsed > 0 else 0,
+                        "finish_reason": reason,
+                        "max_new_tokens": command["max_new_tokens"],
                     },
                 )
             except Exception as exc:

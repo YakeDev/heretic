@@ -32,7 +32,8 @@ SHA = re.compile(r"[0-9a-f]{40}\Z")
 HEX_ID = re.compile(r"[0-9a-f]{32}\Z")
 MAX_PROMPT_CHARS = 6000
 MAX_MESSAGES = 12
-MAX_NEW_TOKENS = 192
+MAX_NEW_TOKENS = 512
+ALLOWED_STYLES = {"neutral", "concise", "pedagogical"}
 
 _lock = threading.RLock()
 _session: dict[str, Any] | None = None
@@ -295,10 +296,12 @@ def _validate_messages(messages: object) -> list[dict[str, str]]:
 
 
 def generate(
-    session_id: str, messages: object, max_new_tokens: int
+    session_id: str, messages: object, max_new_tokens: int, style: str = "neutral"
 ) -> dict[str, object]:
     if not isinstance(max_new_tokens, int) or not 1 <= max_new_tokens <= MAX_NEW_TOKENS:
         raise InferenceError("Longueur de réponse hors limites.", 422)
+    if style not in ALLOWED_STYLES:
+        raise InferenceError("Style de réponse inconnu.", 422)
     validated = _validate_messages(messages)
     with _lock:
         if _session is None or _session["session_id"] != session_id:
@@ -323,6 +326,7 @@ def generate(
                         "output": str(output),
                         "messages": validated,
                         "max_new_tokens": max_new_tokens,
+                        "style": style,
                     }
                 )
                 + "\n"
@@ -364,6 +368,18 @@ def generation_status(session_id: str, request_id: str) -> dict[str, object]:
             result["answer"] = answer if isinstance(answer, str) else ""
             tokens = state.get("generated_tokens")
             result["generated_tokens"] = tokens if isinstance(tokens, int) else 0
+            elapsed = state.get("elapsed_seconds")
+            if isinstance(elapsed, (int, float)) and 0 <= elapsed <= 86400:
+                result["elapsed_seconds"] = elapsed
+            speed = state.get("tokens_per_second")
+            if isinstance(speed, (int, float)) and 0 <= speed <= 100000:
+                result["tokens_per_second"] = speed
+            reason = state.get("finish_reason")
+            if reason in {"eos", "length", "unknown"}:
+                result["finish_reason"] = reason
+            maximum = state.get("max_new_tokens")
+            if type(maximum) is int and 1 <= maximum <= MAX_NEW_TOKENS:
+                result["max_new_tokens"] = maximum
         if state["state"] == "failed":
             phase = state.get("phase")
             error_type = state.get("error_type")
