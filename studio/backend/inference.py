@@ -50,8 +50,14 @@ def _check_snapshot(model_id: str, revision: str) -> Path | None:
     """Accept only snapshots created by the completed downloader receipt."""
     if model_id not in SUPPORTED_MODELS or SHA.fullmatch(revision) is None:
         return None
-    path = STORAGE / model_id.replace("/", "--") / revision
-    if not path.is_dir() or path.is_symlink():
+    folder = STORAGE / model_id.replace("/", "--")
+    path = folder / revision
+    if (
+        STORAGE.is_symlink()
+        or folder.is_symlink()
+        or not path.is_dir()
+        or path.is_symlink()
+    ):
         return None
     receipt = path / "heretic-studio-snapshot.json"
     if receipt.is_symlink() or not receipt.is_file():
