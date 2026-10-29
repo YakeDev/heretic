@@ -90,7 +90,7 @@ models with Heretic.
 > - **Heretic original** : moteur Python en ligne de commande pour l'abliteration et l'optimisation de modèles. La documentation d'origine est conservée dans la section [Usage](#usage) ci-dessous.
 > - **Heretic Studio** : interface **React + FastAPI**, ajoutée dans ce fork pour découvrir les modèles, examiner son matériel, télécharger certains poids après confirmation et **discuter avec un modèle exécuté localement**. Le chat Studio **n'effectue aucune abliteration** et ne modifie pas les poids des modèles.
 >
-> Studio est une **alpha expérimentale, non officielle et non fusionnée dans le projet amont**. Pour le moment, elle est développée sur la branche **\`feature/heretic-studio-local-chat\`**. Cloner seulement la branche \`master\` du fork ne suffit pas à obtenir cette version.
+> Studio est une **alpha expérimentale, non officielle et non fusionnée dans le projet amont**. Pour le moment, elle est développée sur la branche **`feature/heretic-studio-local-chat`**. Cloner seulement la branche `master` du fork ne suffit pas à obtenir cette version.
 
 ### Pourquoi cette évolution ?
 
@@ -101,7 +101,7 @@ Nous avons développé :
 | Domaine | Fonctionnalités de Heretic Studio |
 | --- | --- |
 | **Ergonomie et interface** | Tableau de bord français, barre latérale fixe sur ordinateur, navigation par tâches, parcours en trois étapes, états explicites, affichage adaptatif, focus clavier et rendu Markdown limité à un sous-ensemble sûr. |
-| **Diagnostic du matériel** | Informations système, RAM, stockage, GPU NVIDIA détectés via \`nvidia-smi\`. |
+| **Diagnostic du matériel** | Informations système, RAM, stockage, GPU NVIDIA détectés via `nvidia-smi`. |
 | **Estimation de compatibilité** | Estimations **indicatives** de RAM/VRAM/disque selon le modèle et la précision ; elles **ne certifient pas** qu'un modèle fonctionnera. |
 | **Logiciels IA** | Analyse de versions Python, PyTorch et des bibliothèques utiles ; vérification facultative de CUDA ou Apple MPS. |
 | **Catalogue** | Quelques modèles Qwen, Llama, Gemma et Mistral ; consultation des métadonnées publiques Hugging Face. |
@@ -125,7 +125,7 @@ Nous avons développé :
 
 ### Installation rapide — Windows (PowerShell / VS Code)
 
-Les commandes suivantes concernent **Heretic Studio**, pas le programme \`heretic\` de la section [Usage](#usage).
+Les commandes suivantes concernent **Heretic Studio**, pas le programme `heretic` de la section [Usage](#usage).
 
 **1. Cloner notre branche expérimentale** (première installation) :
 
@@ -140,7 +140,7 @@ Si vous avez **déjà cloné** le dépôt et que vous êtes sur cette branche :
 git pull --ff-only origin feature/heretic-studio-local-chat
 ~~~
 
-Si vous avez cloné la branche \`master\` et souhaitez changer de branche, vérifiez d'abord que vous n'avez **aucune modification locale non enregistrée**, puis :
+Si vous avez cloné la branche `master` et souhaitez changer de branche, vérifiez d'abord que vous n'avez **aucune modification locale non enregistrée**, puis :
 
 ~~~powershell
 git fetch origin
@@ -158,7 +158,7 @@ py -m venv .venv
 
 Un contrôle rapide doit répondre sur **http://127.0.0.1:8765/api/health**.
 
-> La racine \`http://127.0.0.1:8765/\` peut afficher **404 Not Found** : c'est normal. Ce port héberge l'API, **pas** l'interface graphique. Le backend doit rester ouvert pendant l'utilisation de Studio.
+> La racine `http://127.0.0.1:8765/` peut afficher **404 Not Found** : c'est normal. Ce port héberge l'API, **pas** l'interface graphique. Le backend doit rester ouvert pendant l'utilisation de Studio.
 
 **3. Démarrer le frontend** dans un **deuxième terminal** :
 
@@ -172,7 +172,7 @@ Ces deux commandes supposent que ce deuxième terminal est ouvert à la racine d
 
 #### Installation facultative pour utiliser le chat IA
 
-Dans le **premier terminal**, arrêtez le backend avec \`Ctrl+C\`, puis, depuis \`studio\backend\` :
+Dans le **premier terminal**, arrêtez le backend avec `Ctrl+C`, puis, depuis `studio\backend` :
 
 ~~~powershell
 # Si nécessaire, installer d'abord un PyTorch compatible avec le GPU :
@@ -181,7 +181,7 @@ Dans le **premier terminal**, arrêtez le backend avec \`Ctrl+C\`, puis, depuis 
 .\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8765
 ~~~
 
-Le fichier \`requirements-inference.txt\` contient **PyTorch et d'autres dépendances**. Si vous utilisez CUDA, installez **d'abord** le build PyTorch approprié selon la documentation officielle ; l'installation des autres dépendances doit conserver cette version compatible. Cette étape **peut nécessiter un téléchargement volumineux**.
+Le fichier `requirements-inference.txt` contient **PyTorch et d'autres dépendances**. Si vous utilisez CUDA, installez **d'abord** le build PyTorch approprié selon la documentation officielle ; l'installation des autres dépendances doit conserver cette version compatible. Cette étape **peut nécessiter un téléchargement volumineux**.
 
 ### Installation — Linux / macOS
 
@@ -203,16 +203,16 @@ npm install
 npm run dev
 ~~~
 
-Ouvrir **http://127.0.0.1:5173**. Pour le chat local, installer les dépendances depuis \`studio/backend/requirements-inference.txt\` avec le Python de l'environnement virtuel, en choisissant le build PyTorch adapté à la plateforme. Le chat **CPU** peut être lent ; la détection NVIDIA et CUDA n'est pas applicable à tous les ordinateurs.
+Ouvrir **http://127.0.0.1:5173**. Pour le chat local, installer les dépendances depuis `studio/backend/requirements-inference.txt` avec le Python de l'environnement virtuel, en choisissant le build PyTorch adapté à la plateforme. Le chat **CPU** peut être lent ; la détection NVIDIA et CUDA n'est pas applicable à tous les ordinateurs.
 
 ### Premiers pas dans l'interface
 
 1. **Vue d'ensemble / Mon matériel** : consulter RAM, GPU et stockage. Les résultats sont informatifs.
-2. **Modèles IA** : choisir par exemple \`Qwen/Qwen2.5-0.5B-Instruct\`, un petit modèle adapté aux premiers essais. La sélection ne déclenche aucun téléchargement.
+2. **Modèles IA** : choisir par exemple `Qwen/Qwen2.5-0.5B-Instruct`, un petit modèle adapté aux premiers essais. La sélection ne déclenche aucun téléchargement.
 3. **Compatibilité / Logiciels IA** : évaluer les ressources et vérifier les bibliothèques installées. Une estimation favorable **n'est pas une garantie**.
 4. **Télécharger** : cliquer sur la vérification de taille et de stockage, consulter la licence officielle, confirmer les conditions **uniquement si elles sont acceptées**, puis lancer le téléchargement. Ne pas confondre vérification et téléchargement effectif.
 5. **Chat local** : cliquer sur **Actualiser les modèles téléchargés**, sélectionner un snapshot local terminé, choisir **GPU NVIDIA (CUDA)** ou **CPU**, puis **Charger le modèle**.
-6. Attendre l'état **« Modèle prêt à répondre »** (ou \`ready\`), saisir une question, par exemple « Explique TCP et UDP en trois phrases », puis cliquer sur **Envoyer le message**.
+6. Attendre l'état **« Modèle prêt à répondre »** (ou `ready`), saisir une question, par exemple « Explique TCP et UDP en trois phrases », puis cliquer sur **Envoyer le message**.
 7. Au besoin, personnaliser le **style** et la **longueur maximale** ; consulter les métriques sous la réponse. Cliquer sur **Arrêter le modèle** pour libérer les ressources.
 
 > **À propos de la qualité des réponses :** le test réel du petit Qwen2.5-0.5B-Instruct a confirmé une génération locale, mais également des **erreurs factuelles** sur TCP/UDP. L'interface ne peut pas corriger automatiquement les connaissances d'un modèle. Vérifier les informations importantes auprès de sources fiables.
@@ -223,10 +223,10 @@ Les poids téléchargés par Studio sont rangés dans le profil utilisateur :
 
 | Système | Emplacement habituel |
 | --- | --- |
-| Windows | \`%USERPROFILE%\.cache\heretic-studio\models\` |
-| Linux/macOS | \`~/.cache/heretic-studio/models/\` |
+| Windows | `%USERPROFILE%\.cache\heretic-studio\models` |
+| Linux/macOS | `~/.cache/heretic-studio/models/` |
 
-Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot terminé**. La présence seule de \`model.safetensors\` ne suffit pas.
+Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot terminé**. La présence seule de `model.safetensors` ne suffit pas.
 
 **Téléchargement Qwen interrompu ?** Ne recommencez pas immédiatement un téléchargement important. La procédure de [récupération hors ligne de Qwen2.5-0.5B](studio/README.md#récupérer-le-téléchargement-interrompu-de-qwen25-05b-sans-internet) permet de vérifier les empreintes des fichiers existants ; elle reste **spécifique à cette version de Qwen** et n'est pas une fonction générale de reprise automatique.
 
@@ -234,9 +234,9 @@ Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot termin
 
 | Symptôme | Vérification / action |
 | --- | --- |
-| \`127.0.0.1:8765/\` affiche \`404\` | Normal : utiliser \`127.0.0.1:8765/api/health\` pour l'API et \`127.0.0.1:5173\` pour le site. |
-| **Backend indisponible** | Vérifier le terminal Python, le port \`8765\` et l'URL locale. |
-| \`pip\` ou \`python\` non reconnu dans PowerShell | Utiliser le Python de \`.venv\` via \`.\.venv\Scripts\python.exe -m pip ...\`, ou vérifier l'installation de Python. |
+| `127.0.0.1:8765/` affiche `404` | Normal : utiliser `127.0.0.1:8765/api/health` pour l'API et `127.0.0.1:5173` pour le site. |
+| **Backend indisponible** | Vérifier le terminal Python, le port `8765` et l'URL locale. |
+| `pip` ou `python` non reconnu dans PowerShell | Utiliser le Python de `.venv` via `.\.venv\Scripts\python.exe -m pip ...`, ou vérifier l'installation de Python. |
 | **PyTorch absent / CUDA indisponible** | Installer explicitement les dépendances facultatives et vérifier le build PyTorch ainsi que le pilote NVIDIA. Le diagnostic CUDA n'est pas une preuve de compatibilité du modèle. |
 | **Aucun modèle disponible dans le chat** | Vérifier que le téléchargement a été **terminé et validé**, puis actualiser la liste du chat. |
 | **Chargement ou génération échoué** | Lire l'étape d'erreur affichée, essayer un modèle moins exigeant ou le mode CPU ; vérifier la mémoire disponible. Ne pas retélécharger les poids par réflexe. |
@@ -245,8 +245,8 @@ Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot termin
 
 ### Sécurité, confidentialité et limites
 
-- **Serveur local uniquement** : démarrer Uvicorn avec \`--host 127.0.0.1\` ; **ne pas exposer le port 8765 sur Internet ou un réseau public**. L'alpha n'est pas une application cloud ni un serveur sécurisé multiutilisateur.
-- L'inférence utilise des **poids safetensors**, avec \`local_files_only=True\` et \`trust_remote_code=False\`. Ce sont des mesures de précaution, **pas une garantie absolue contre tout fichier malveillant**.
+- **Serveur local uniquement** : démarrer Uvicorn avec `--host 127.0.0.1` ; **ne pas exposer le port 8765 sur Internet ou un réseau public**. L'alpha n'est pas une application cloud ni un serveur sécurisé multiutilisateur.
+- L'inférence utilise des **poids safetensors**, avec `local_files_only=True` et `trust_remote_code=False`. Ce sont des mesures de précaution, **pas une garantie absolue contre tout fichier malveillant**.
 - Les téléchargements sont limités aux modèles autorisés par le catalogue et nécessitent une **confirmation de licence** ; les formats de poids Python/pickle ne sont pas acceptés par le gestionnaire.
 - La **recherche de modèles** et le **téléchargement des poids** communiquent avec Hugging Face ; la **génération de texte**, une fois le modèle installé, s'effectue sur la machine.
 - L'historique du chat est géré localement dans cette alpha, sans espace utilisateur en ligne. Des fichiers d'état temporaires peuvent subsister en cas de panne ; ne pas utiliser ce prototype pour des données hautement sensibles.
@@ -256,13 +256,13 @@ Un modèle ne figure dans le chat que si Studio reconnaît son **snapshot termin
 
 ### Tester, contribuer et suivre le développement
 
-Dans \`studio/backend\`, après installation de \`requirements-dev.txt\` :
+Dans `studio/backend`, après installation de `requirements-dev.txt` :
 
 ~~~bash
 python -m unittest discover -s tests -v
 ~~~
 
-Dans \`studio/frontend\` :
+Dans `studio/frontend` :
 
 ~~~bash
 npm run build
