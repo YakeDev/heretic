@@ -37,7 +37,6 @@ CHAT_STYLES = {
 }
 
 
-
 def resolve_transformer_factories() -> tuple[Any, Any]:
     """Resolve classes through module attributes (Transformers is lazy-loaded).
 
@@ -109,9 +108,7 @@ def prepare_chat_inputs(
     return inputs.to(device), length
 
 
-def finish_reason(
-    count: int, maximum: int, last_token: int, eos_ids: object
-) -> str:
+def finish_reason(count: int, maximum: int, last_token: int, eos_ids: object) -> str:
     """Distinguish reaching the generation cap from EOS termination."""
     if isinstance(eos_ids, int):
         endings = {eos_ids}
@@ -209,9 +206,11 @@ def main() -> int:
                 inputs, prompt_length = prepare_chat_inputs(
                     tokenizer,
                     chat_messages(command["messages"], command.get("style", "neutral")),
-                    model.device
+                    model.device,
                 )
                 phase = "génération"
+                if device == "cuda":
+                    torch.cuda.synchronize()
                 beginning = time.monotonic()
                 with torch.inference_mode():
                     generated = model.generate(
@@ -220,6 +219,8 @@ def main() -> int:
                         do_sample=False,
                         pad_token_id=tokenizer.eos_token_id,
                     )
+                if device == "cuda":
+                    torch.cuda.synchronize()
                 phase = "décodage"
                 new_tokens = generated[0, prompt_length:]
                 answer = tokenizer.decode(new_tokens, skip_special_tokens=True)
@@ -228,9 +229,13 @@ def main() -> int:
                 ending = getattr(model.generation_config, "eos_token_id", None)
                 if ending is None:
                     ending = tokenizer.eos_token_id
-                reason = finish_reason(
-                    count, command["max_new_tokens"], new_tokens[-1].item(), ending
-                ) if count else "unknown"
+                reason = (
+                    finish_reason(
+                        count, command["max_new_tokens"], new_tokens[-1].item(), ending
+                    )
+                    if count
+                    else "unknown"
+                )
                 _status(
                     output,
                     {
@@ -238,7 +243,9 @@ def main() -> int:
                         "answer": answer[:12000],
                         "generated_tokens": count,
                         "elapsed_seconds": round(elapsed, 2),
-                        "tokens_per_second": round(count / elapsed, 1) if elapsed > 0 else 0,
+                        "tokens_per_second": round(count / elapsed, 1)
+                        if elapsed > 0
+                        else 0,
                         "finish_reason": reason,
                         "max_new_tokens": command["max_new_tokens"],
                     },
