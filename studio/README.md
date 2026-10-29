@@ -210,6 +210,31 @@ exceptions brutes ni le contenu de la conversation. Le texte de la question
 reste dans le champ de saisie pour un nouvel essai. Les tests automatisés
 simulent la génération et ne remplacent pas un essai réel sur la carte graphique.
 
+### Améliorations du chat local : longueur, Markdown et métriques
+
+- Trois styles de consigne **fixes et locaux** : concis, standard, pédagogique.
+  Ils guident le modèle mais **n'assurent pas** qu'il respectera le nombre de
+  phrases demandé, ni que ses réponses seront exactes (notamment Qwen 0,5B).
+- Longueur réglable dans l'interface : **128, 256, 384 ou 512** nouveaux tokens,
+  au lieu d'un plafond systématique de 128 dans l'UI. Une réponse interrompue
+  par la limite affiche une alerte explicite.
+- Rendu local sécurisé d'un **sous-ensemble de Markdown** : paragraphes, titres,
+  gras, italique, listes et blocs de code ; contenu interprété comme du texte
+  React, **sans HTML brut, liens exécutables ou bibliothèque supplémentaire**.
+- Affichage, par réponse, des tokens générés, de la durée de génération et de
+  la vitesse (tokens/s). Sur CUDA, synchronisation avant et après la génération
+  pour améliorer l'exactitude. RAM et VRAM libres : instantanés système, **pas
+  des mesures de consommation attribuables au seul modèle**.
+- Deux questions de test préremplies facilitent la comparaison manuelle, sans
+  inventer de score automatique d'exactitude.
+- Limites conservées : une session et une génération à la fois, 12 messages
+  maximum et 6 000 caractères au total, aucune optimisation Heretic activée.
+
+Pour obtenir ces améliorations : `git pull --ff-only origin feature/heretic-studio-local-chat`,
+redémarrer Uvicorn, puis rafraîchir Chrome. Aucun nouvel achat de données :
+**pas de dépendance npm ajoutée, pas de nouveau modèle et pas de réinstallation
+de PyTorch**.
+
 ### Tests
 
 Les tests automatisés vérifient les conditions de sécurité et simulent le processus enfant ; **ils ne chargent pas de vrai modèle**. La dernière étape de recette est un essai manuel de téléchargement + démarrage + conversation + arrêt sur un GPU compatible.
