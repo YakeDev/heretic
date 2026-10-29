@@ -198,6 +198,28 @@ Les routes ci-dessous utilisent les mêmes contrôles **Host local + Origin auto
 
 Les tests automatisés vérifient les conditions de sécurité et simulent le processus enfant ; **ils ne chargent pas de vrai modèle**. La dernière étape de recette est un essai manuel de téléchargement + démarrage + conversation + arrêt sur un GPU compatible.
 
+## Récupérer le téléchargement interrompu de Qwen2.5-0.5B sans Internet
+
+Sur certaines sessions Windows, le processus de téléchargement a pu s'arrêter **après** avoir transféré les fichiers, mais **avant** d'écrire `heretic-studio-snapshot.json`. Le dossier contient alors huit fichiers, alors que le journal reste à 7/8. **Ne recommence pas un téléchargement de 1 Go avant de vérifier les fichiers existants.**
+
+Dans PowerShell, après avoir récupéré la dernière version de la branche, ouvrir `studio/backend` et exécuter :
+
+~~~powershell
+.\\.venv\\Scripts\\python.exe recover_snapshot.py
+~~~
+
+La vérification est **entièrement hors ligne et non destructive**. Pour cette première récupération, elle est délibérément limitée à **Qwen/Qwen2.5-0.5B-Instruct**, avec les huit fichiers attendus, le total connu de **999 591 264 octets**, une révision Git Hugging Face cohérente et une trace locale du téléchargement dans `~/.cache/heretic-studio/jobs`. Elle recalcule une empreinte cryptographique de chaque fichier et la compare aux métadonnées Hugging Face locales (SHA-256 pour les poids LFS, SHA-1 avec préfixe Git blob pour les fichiers Git). L'égalité des tailles seules n'est **pas** une preuve d'intégrité.
+
+Si et seulement si le résultat affiche **VÉRIFICATION RÉUSSIE**, enregistrer le reçu :
+
+~~~powershell
+.\\.venv\\Scripts\\python.exe recover_snapshot.py --repair
+~~~
+
+Le mode `--repair` n'utilise pas le réseau, **ne télécharge aucun modèle**, et n'écrit que le fichier de validation final, après tous les contrôles. S'il manque un fichier, une métadonnée ou si une empreinte ne correspond pas, il **refuse l'opération sans créer de reçu**. Ensuite, dans l'interface **Chat local**, cliquer « Actualiser les modèles téléchargés » ; Qwen devrait apparaître.
+
+Cette récupération ciblée des fichiers déjà présents n'est **pas** un système général de reprise des téléchargements. Le rétablissement de la progression après fermeture du navigateur et la gestion des autres modèles seront traités séparément.
+
 ## Sécurité et architecture
 
 - **Local uniquement** : le serveur est lancé sur 127.0.0.1 ; ne pas utiliser --host 0.0.0.0.
