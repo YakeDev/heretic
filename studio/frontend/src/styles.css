@@ -367,3 +367,37 @@ footer{padding:37px 0 10px;border-top:1px solid #263a46;margin-top:53px;font-siz
   html{scroll-behavior:auto}
   *,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important}
 }
+
+
+/* Progressive disclosure and human readable action feedback */
+.model-helper{color:#a9c8ba;border:1px dashed #386155;background:#122a2a;border-radius:12px;padding:14px 17px;font-size:12px;line-height:1.6;margin:18px 0 0}
+.chat-options,.chat-evaluation-details,.chat-performance-details{border:1px solid #385765;border-radius:11px;background:#102632;margin:13px 0;overflow:hidden}
+.chat-options summary,.chat-evaluation-details summary,.chat-performance-details summary{
+  cursor:pointer;min-height:47px;display:flex;align-items:center;gap:10px;padding:12px 16px;
+  font-size:12px;font-weight:750;color:#d0e8e7;list-style:none;
+}
+.chat-options summary::-webkit-details-marker,.chat-evaluation-details summary::-webkit-details-marker,.chat-performance-details summary::-webkit-details-marker{display:none}
+.chat-options summary::before,.chat-evaluation-details summary::before,.chat-performance-details summary::before{
+  content:"+";width:20px;height:20px;display:grid;place-items:center;flex-shrink:0;
+  border:1px solid #496f73;border-radius:6px;color:#a5efd2;font-size:16px;line-height:1;
+}
+.chat-options[open] summary::before,.chat-evaluation-details[open] summary::before,.chat-performance-details[open] summary::before{content:"−"}
+.chat-options summary span{margin-left:auto;font-size:11px;color:#94aeb9;font-weight:450;text-align:right}
+.chat-options[open] summary,.chat-evaluation-details[open] summary,.chat-performance-details[open] summary{border-bottom:1px solid #31505a;background:#17303a}
+.chat-options>.chat-tuning,.chat-evaluation-details>.chat-evaluation{margin:0;padding:15px 16px}
+.chat-options>.chat-hint{margin:0;padding:0 16px 16px;color:#99b4c0}
+.chat-performance-details .chat-performance{margin:13px 15px}
+.chat-evaluation{margin-top:0;gap:11px}
+.chat-evaluation button{background:#1d3c47;border-color:#3f6570}
+.chat-state.is-ready{color:#c4f3dd;background:#12392f;border-color:#3c765d}
+.chat-state.is-loading,.chat-state.is-generating{color:#f6e2bd;background:#3c3022;border-color:#8e6b39}
+.chat-state.is-failed,.chat-state.is-stopped{color:#f5c6b9;background:#38272b;border-color:#86535b}
+.chat-state.is-loading .status-dot,.chat-state.is-generating .status-dot{background:#f4bd75}
+.chat-state.is-failed .status-dot,.chat-state.is-stopped .status-dot{background:#f1a7a0}
+.chat-compose label{display:flex;justify-content:space-between;align-items:baseline;gap:14px}
+.chat-compose-hint{font-size:11px;font-weight:500;color:#97b3bd;font-variant-numeric:tabular-nums}
+.download-next-step{display:inline-flex;align-items:center;justify-content:center;min-height:44px;padding:11px 15px;border-radius:9px;border:1px solid #65b998;background:#234d3d;color:#ccf7dd;width:max-content;max-width:100%;font-size:12px;font-weight:750}
+.download-next-step:hover{background:#2b6953}
+.model-selection-next a:hover,.chat-hint a:hover{text-decoration-thickness:2px;color:#c6ffe2}
+.chat-hint a{color:#adeccd;text-decoration:underline;text-underline-offset:3px}
+@media(max-width:680px){.chat-options summary span{font-size:10px}.chat-evaluation-details .chat-evaluation{display:grid}.chat-evaluation-details button{width:100%}}
