@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import { Models } from './Models';
 
 type SystemInfo = {
   os: string;
@@ -54,6 +55,7 @@ export function App() {
         <div className="nav-title">ESPACE DE TRAVAIL</div>
         <nav aria-label="Navigation principale">
           <a className="nav-item active" href="#overview"><span>◫</span> Vue d'ensemble</a>
+          <a className="nav-item" href="#models"><span>◈</span> Modèles IA</a>
           <a className="nav-item" href="#machine"><span>▤</span> Mon matériel</a>
           <a className="nav-item" href="#roadmap"><span>◇</span> Prochaines étapes</a>
         </nav>
@@ -64,7 +66,7 @@ export function App() {
         <div className="content" id="overview">
           <div className="eyebrow">BIENVENUE DANS TON LABORATOIRE</div>
           <h1>Comprendre tes modèles.<br /><em>Maîtriser tes expériences.</em></h1>
-          <p className="intro">Heretic Studio rend l'environnement Heretic plus accessible. Cette première version affiche seulement des diagnostics locaux : aucun modèle n'est modifié.</p>
+          <p className="intro">Heretic Studio rend l'environnement Heretic plus accessible. Consulte les caractéristiques de ton ordinateur et explore les modèles Hugging Face avant les futures expériences. Aucun modèle n'est modifié.</p>
           {error && <div role="alert" className="error"><strong>Backend indisponible</strong><p>{error}</p></div>}
           <div className="section-heading" id="machine"><div><span className="eyebrow">01 / DIAGNOSTIC</span><h2>Ton environnement de travail</h2></div><button onClick={() => void refresh()} disabled={loading}>{loading ? 'Analyse...' : '↻ Actualiser'}</button></div>
           <div className="grid">
@@ -73,9 +75,10 @@ export function App() {
             <article className="card"><div className="card-icon">◈</div><div className="label">GPU NVIDIA DÉTECTÉ</div><div className="value">{system ? system.nvidia_gpus.length : '—'}</div><div className="sub">{system?.nvidia_gpus.map((gpu) => gpu.name + ' · ' + gpu.memory_total_gb + ' Go VRAM').join(' ; ') || 'Non détecté ou non pris en charge par cette sonde'}</div></article>
           </div>
           {system && <div className="note">ⓘ {system.gpu_detection_note} Ce diagnostic ne valide pas la compatibilité avec un modèle.</div>}
+          <Models />
           <div className="panel-grid">
-            <article className="panel"><span className="eyebrow">02 / MOTEUR</span><h2>Heretic</h2><p>Informations lues depuis le projet Python existant.</p><dl><div><dt>Paquet</dt><dd>{project?.name ?? '—'}</dd></div><div><dt>Version du code</dt><dd>{project?.version ?? '—'}</dd></div><div><dt>Python requis</dt><dd>{project?.python ?? '—'}</dd></div></dl></article>
-            <article className="panel" id="roadmap"><span className="eyebrow">03 / À VENIR</span><h2>Expérimentations</h2><p>L'exécution et la modification de modèles seront ajoutées après validation du moteur, des ressources et des mécanismes d'arrêt.</p><div className="coming"><span>Catalogue des modèles</span><b>À venir</b></div><div className="coming"><span>Assistant de configuration</span><b>À venir</b></div><div className="coming"><span>Comparaison des résultats</span><b>À venir</b></div></article>
+            <article className="panel"><span className="eyebrow">03 / MOTEUR</span><h2>Heretic</h2><p>Informations lues depuis le projet Python existant.</p><dl><div><dt>Paquet</dt><dd>{project?.name ?? '—'}</dd></div><div><dt>Version du code</dt><dd>{project?.version ?? '—'}</dd></div><div><dt>Python requis</dt><dd>{project?.python ?? '—'}</dd></div></dl></article>
+            <article className="panel" id="roadmap"><span className="eyebrow">04 / À VENIR</span><h2>Expérimentations</h2><p>L'exécution et la modification de modèles seront ajoutées après validation du moteur, des ressources et des mécanismes d'arrêt.</p><div className="coming"><span>Catalogue public des modèles</span><b>Consultable</b></div><div className="coming"><span>Assistant de configuration</span><b>À venir</b></div><div className="coming"><span>Comparaison des résultats</span><b>À venir</b></div></article>
           </div>
           <footer>HERETIC STUDIO · VERSION EXPÉRIMENTALE · AUCUNE ACTION SUR LES MODÈLES</footer>
         </div>
