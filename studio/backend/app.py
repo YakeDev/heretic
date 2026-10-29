@@ -11,10 +11,9 @@ import shutil
 import subprocess
 import sys
 from pathlib import Path
-
-import psutil
 from typing import Annotated
 
+import psutil
 from catalog import HubUnavailable, curated_catalog, search_hugging_face
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
