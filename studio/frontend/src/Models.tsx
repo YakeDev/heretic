@@ -190,11 +190,11 @@ export function Models() {
           </div>
         )}
       </div>
+      <p className="model-license-note">Certains modèles (notamment Llama) nécessitent une licence ou une autorisation. Vérifie toujours la fiche officielle avant téléchargement.</p>
       <HardwareEstimator modelId={selectedModel} />
       <SoftwareDiagnostics />
       <DownloadManager modelId={selectedModel} />
       <LocalChat />
-      <div className="note">ⓘ Les modèles Llama peuvent nécessiter l'acceptation d'une licence et une autorisation Meta. Ne télécharge pas de poids depuis une source inconnue.</div>
     </section>
   );
 }
