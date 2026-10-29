@@ -123,7 +123,11 @@ def _read_status(path: Path) -> dict[str, Any] | None:
     except (OSError, ValueError):
         return None
     if isinstance(value, dict) and value.get("state") in {
-        "loading", "ready", "failed", "generating", "completed",
+        "loading",
+        "ready",
+        "failed",
+        "generating",
+        "completed",
     }:
         return value
     return None
@@ -132,7 +136,9 @@ def _read_status(path: Path) -> dict[str, Any] | None:
 def _current_status(session: dict[str, Any]) -> dict[str, object]:
     status = _read_status(Path(session["status_file"]))
     process: subprocess.Popen[str] = session["process"]
-    if process.poll() is not None and (status is None or status.get("state") in {"loading", "ready", "generating"}):
+    if process.poll() is not None and (
+        status is None or status.get("state") in {"loading", "ready", "generating"}
+    ):
         state = "stopped"
         message = "Le processus du modèle s'est arrêté. Vérifie la mémoire disponible."
     else:
@@ -187,7 +193,8 @@ def start_session(model_id: str, revision: str, device: str) -> dict[str, object
     model_dir = _check_snapshot(model_id, revision)
     if model_dir is None:
         raise InferenceError(
-            "Modèle local absent ou snapshot non vérifié. Télécharge-le depuis Studio.", 404
+            "Modèle local absent ou snapshot non vérifié. Télécharge-le depuis Studio.",
+            404,
         )
     with _lock:
         if _session is not None and _session["process"].poll() is None:
@@ -200,11 +207,13 @@ def start_session(model_id: str, revision: str, device: str) -> dict[str, object
         worker_file = Path(__file__).with_name("inference_worker.py")
         # Local-only transport + offline model loading; never run repository code.
         env = os.environ.copy()
-        env.update({
-            "HF_HUB_OFFLINE": "1",
-            "TRANSFORMERS_OFFLINE": "1",
-            "HF_HUB_DISABLE_TELEMETRY": "1",
-        })
+        env.update(
+            {
+                "HF_HUB_OFFLINE": "1",
+                "TRANSFORMERS_OFFLINE": "1",
+                "HF_HUB_DISABLE_TELEMETRY": "1",
+            }
+        )
         try:
             proc = subprocess.Popen(
                 [sys.executable, "-I", str(worker_file)],
@@ -217,11 +226,14 @@ def start_session(model_id: str, revision: str, device: str) -> dict[str, object
             if proc.stdin is None:
                 raise OSError("Missing worker stdin")
             proc.stdin.write(
-                json.dumps({
-                    "model_dir": str(model_dir),
-                    "status_file": str(status_file),
-                    "device": device,
-                }) + "\n"
+                json.dumps(
+                    {
+                        "model_dir": str(model_dir),
+                        "status_file": str(status_file),
+                        "device": device,
+                    }
+                )
+                + "\n"
             )
             proc.stdin.flush()
         except (OSError, BrokenPipeError) as exc:
@@ -295,13 +307,16 @@ def generate(
             if process.stdin is None:
                 raise OSError("Missing worker pipe")
             process.stdin.write(
-                json.dumps({
-                    "command": "generate",
-                    "request_id": request_id,
-                    "output": str(output),
-                    "messages": validated,
-                    "max_new_tokens": max_new_tokens,
-                }) + "\n"
+                json.dumps(
+                    {
+                        "command": "generate",
+                        "request_id": request_id,
+                        "output": str(output),
+                        "messages": validated,
+                        "max_new_tokens": max_new_tokens,
+                    }
+                )
+                + "\n"
             )
             process.stdin.flush()
         except (OSError, BrokenPipeError) as exc:
@@ -336,7 +351,9 @@ def generation_status(session_id: str, request_id: str) -> dict[str, object]:
             tokens = state.get("generated_tokens")
             result["generated_tokens"] = tokens if isinstance(tokens, int) else 0
         if state["state"] == "failed":
-            result["message"] = "La génération a échoué. Essaie une question plus courte."
+            result["message"] = (
+                "La génération a échoué. Essaie une question plus courte."
+            )
         return result
 
 
