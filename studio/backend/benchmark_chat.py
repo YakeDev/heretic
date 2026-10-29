@@ -20,6 +20,8 @@ from typing import Any
 API = "http://127.0.0.1:8765"
 ORIGIN = "http://127.0.0.1:5173"
 SUITE = Path(__file__).with_name("benchmarks") / "french_quality_v1.json"
+# Bypass environment/system proxies so no prompt can be routed away from loopback.
+LOCAL_OPENER = urllib.request.build_opener(urllib.request.ProxyHandler({}))
 
 
 def api_request(
@@ -40,7 +42,7 @@ def api_request(
         method="POST" if payload is not None else "GET",
     )
     try:
-        with urllib.request.urlopen(request, timeout=15) as response:
+        with LOCAL_OPENER.open(request, timeout=15) as response:
             data = json.load(response)
     except urllib.error.HTTPError as exc:
         raise RuntimeError(f"Studio refused the request (HTTP {exc.code}).") from exc
