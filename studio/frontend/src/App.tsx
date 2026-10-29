@@ -90,22 +90,32 @@ export function App() {
     selectHash();
     window.addEventListener('hashchange', selectHash);
 
-    // Keep navigation aligned with the actual content, not just the last click.
-    const observer = new IntersectionObserver(
-      (entries) => {
-        const visible = entries
-          .filter((entry) => entry.isIntersecting)
-          .sort((a, b) => a.boundingClientRect.top - b.boundingClientRect.top);
-        if (visible.length) setActiveSection(visible[0].target.id);
-      },
-      { rootMargin: '-12% 0px -67% 0px', threshold: 0 },
-    );
-    for (const id of allIds) {
-      const element = document.getElementById(id);
-      if (element) observer.observe(element);
-    }
+    // Anchors include nested panels: use the last heading above the reading
+    // line, not an intersection observer that can keep the parent selected.
+    let frame = 0;
+    const syncActive = () => {
+      frame = 0;
+      const readingLine = window.innerWidth <= 950 ? 165 : 116;
+      const above = allIds
+        .map((id) => {
+          const target = document.getElementById(id);
+          return target ? { id, top: target.getBoundingClientRect().top } : null;
+        })
+        .filter((entry): entry is { id: string; top: number } => entry !== null)
+        .filter((entry) => entry.top <= readingLine)
+        .sort((a, b) => b.top - a.top);
+      setActiveSection(above[0]?.id ?? 'overview');
+    };
+    const onScroll = () => {
+      if (!frame) frame = window.requestAnimationFrame(syncActive);
+    };
+    window.addEventListener('scroll', onScroll, { passive: true });
+    window.addEventListener('resize', onScroll);
+    onScroll();
     return () => {
-      observer.disconnect();
+      window.cancelAnimationFrame(frame);
+      window.removeEventListener('scroll', onScroll);
+      window.removeEventListener('resize', onScroll);
       window.removeEventListener('hashchange', selectHash);
     };
   }, []);
