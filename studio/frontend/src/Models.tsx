@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { DownloadManager } from './DownloadManager';
 import { HardwareEstimator } from './HardwareEstimator';
+import { LocalChat } from './LocalChat';
 import { SoftwareDiagnostics } from './SoftwareDiagnostics';
 
 type CuratedModel = {
@@ -32,7 +33,14 @@ export function Models() {
   const [results, setResults] = useState<HubModel[]>([]);
   const [searchStatus, setSearchStatus] = useState('');
   const [searching, setSearching] = useState(false);
-  const [selectedModel, setSelectedModel] = useState('');
+  // This is a non-sensitive UI preference; it does not download or execute a model.
+  const [selectedModel, setSelectedModel] = useState(() => {
+    try {
+      return window.sessionStorage.getItem('heretic-studio-selected-model') ?? '';
+    } catch {
+      return '';
+    }
+  });
 
   useEffect(() => {
     const controller = new AbortController();
@@ -41,7 +49,16 @@ export function Models() {
         const response = await fetch(API_BASE + '/api/models', { signal: controller.signal });
         if (!response.ok) throw new Error('API inaccessible');
         const body = await response.json() as { models: CuratedModel[] };
-        if (!controller.signal.aborted) setCatalog(body.models);
+        if (!controller.signal.aborted) {
+          setCatalog(body.models);
+          setSelectedModel((previous) => {
+            if (previous && !body.models.some((model) => model.id === previous)) {
+              try { window.sessionStorage.removeItem('heretic-studio-selected-model'); } catch { /* optional storage */ }
+              return '';
+            }
+            return previous;
+          });
+        }
       } catch {
         if (!controller.signal.aborted) setCatalogError('Impossible de charger le catalogue local.');
       } finally {
@@ -50,6 +67,11 @@ export function Models() {
     })();
     return () => controller.abort();
   }, []);
+
+  function selectModel(id: string) {
+    setSelectedModel(id);
+    try { window.sessionStorage.setItem('heretic-studio-selected-model', id); } catch { /* storage not required */ }
+  }
 
   async function search(event: FormEvent<HTMLFormElement>) {
     event.preventDefault();
@@ -87,16 +109,16 @@ export function Models() {
       <div className="section-heading">
         <div>
           <span className="eyebrow">02 / BIBLIOTHÈQUE</span>
-          <h2 id="models-title">Explorer les modèles IA</h2>
+          <h2 id="models-title">Choisir un modèle IA</h2>
         </div>
         <span className="readonly-badge">Expérimental · Téléchargement sur confirmation</span>
       </div>
-      <p className="model-intro">Découvre quelques modèles utiles pour nos futurs tests. Les fiches n'attestent pas encore de leur compatibilité avec Heretic ou avec ton matériel.</p>
+      <p className="model-intro">Sélectionne un modèle pour évaluer ton matériel et, si tu le souhaites, préparer son téléchargement. La sélection ne lance aucune opération.</p>
       {catalogError && <p className="error" role="alert">{catalogError}</p>}
       {loadingCatalog ? <p className="sub" role="status">Chargement du catalogue local…</p> : (
         <div className="model-grid">
           {catalog.map((model) => (
-            <article className="model-card" key={model.id}>
+            <article className={'model-card' + (selectedModel === model.id ? ' is-selected' : '')} key={model.id}>
               <div className="model-card-top">
                 <span className="model-family">{model.family}</span>
                 <span className="model-params">{model.parameters}</span>
@@ -108,10 +130,10 @@ export function Models() {
               <button
                 type="button"
                 className="model-check"
-                onClick={() => setSelectedModel(model.id)}
+                onClick={() => selectModel(model.id)}
                 aria-pressed={selectedModel === model.id}
               >
-                {selectedModel === model.id ? 'Sélectionné ✓' : 'Évaluer mon matériel'}
+                {selectedModel === model.id ? 'Modèle sélectionné ✓' : 'Choisir ce modèle'}
               </button>
               <a href={model.url} target="_blank" rel="noopener noreferrer" className="model-link">
                 Voir sur Hugging Face <span aria-hidden="true">↗</span>
@@ -120,9 +142,15 @@ export function Models() {
           ))}
         </div>
       )}
-      <HardwareEstimator modelId={selectedModel} />
-      <SoftwareDiagnostics />
-      <DownloadManager modelId={selectedModel} />
+      {selectedModel ? (
+        <div className="model-selection-next" role="status">
+          <strong>Modèle sélectionné : {selectedModel}</strong>
+          <a href="#compatibility">Vérifier les ressources ↗</a>
+          <a href="#downloads">Préparer le téléchargement ↗</a>
+        </div>
+      ) : (
+        <p className="model-helper">Choisis un modèle dans le catalogue avant de vérifier sa compatibilité.</p>
+      )}
       <div className="hub-panel">
         <div>
           <span className="eyebrow">RECHERCHE EXTERNE</span>
@@ -162,7 +190,11 @@ export function Models() {
           </div>
         )}
       </div>
-      <div className="note">ⓘ Les modèles Llama peuvent nécessiter l'acceptation d'une licence et une autorisation Meta. Ne télécharge pas de poids depuis une source inconnue.</div>
+      <p className="model-license-note">Certains modèles (notamment Llama) nécessitent une licence ou une autorisation. Vérifie toujours la fiche officielle avant téléchargement.</p>
+      <HardwareEstimator modelId={selectedModel} />
+      <SoftwareDiagnostics />
+      <DownloadManager modelId={selectedModel} />
+      <LocalChat />
     </section>
   );
 }

@@ -96,6 +96,16 @@ def main() -> int:
         )
         return 1
 
+    # Receipt is written only after all pinned assets are downloaded.
+    # The local chat loader only accepts snapshots with this receipt.
+    _write_status(
+        destination / "heretic-studio-snapshot.json",
+        {
+            "model_id": repo_id,
+            "revision": sha,
+            "files": [item["path"] for item in items],
+        },
+    )
     _write_status(
         status_file,
         {

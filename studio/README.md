@@ -1,10 +1,13 @@
 # Heretic Studio — application locale (alpha)
 
-Interface **expérimentale, en français, locale, avec diagnostic en lecture seule et téléchargement facultatif** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
+Interface **expérimentale, en français, locale, avec diagnostics, téléchargement facultatif et premier chat IA local** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
+
+Pour la conception visuelle, les principes d'ergonomie cognitive et les scénarios de recette, voir [Principes UX/UI](UX_UI_GUIDELINES.md).
 
 ## Périmètre disponible
 
 - Tableau de bord React accessible dans le navigateur en local.
+- Barre latérale fixe à l'écran sur ordinateur pendant le défilement de la page ; si les liens dépassent la hauteur disponible, défilement interne du menu. Sous 951 px, barre de navigation horizontale non fixe avec défilement latéral des liens, afin de préserver la place sur petit écran.
 - API FastAPI locale : GET /api/health, GET /api/system, GET /api/project, GET /api/models et GET /api/models/search?q= ; endpoints de téléchargement opt-in (voir ci-dessous).
 - Vue de la mémoire, du processeur, de l'espace disque et des GPU NVIDIA détectables par nvidia-smi.
 - Métadonnées du paquet Heretic lues depuis pyproject.toml.
@@ -14,7 +17,8 @@ Interface **expérimentale, en français, locale, avec diagnostic en lecture seu
 - Sélection d'un modèle depuis le catalogue, évaluation locale sans téléchargement ni exécution.
 - Diagnostic logiciel déclenché explicitement : versions Python/PyTorch/Transformers/Accelerate/PEFT/bitsandbytes/Hugging Face Hub/Optuna, pilotes NVIDIA accessibles et sondage local PyTorch CUDA/Apple MPS.
 - Téléchargement local **seulement après une vérification des métadonnées, de l'espace disque et une confirmation de licence** ; annulation disponible.
-- **Pas d'exécution, de modification, d'export ni de publication de modèles.** Ces commandes ne sont pas activées.
+- Chat IA local facultatif : chargement d'un snapshot téléchargé dans un processus enfant isolé, réponses courtes, arrêt manuel et libération des ressources.
+- **Aucune optimisation Heretic, modification, export ni publication de modèle n'est activée.** L'inférence ne modifie pas les poids.
 
 ## Lancer le backend (terminal 1)
 
@@ -144,6 +148,196 @@ Les requêtes sur ces endpoints requièrent une origine locale autorisée et l'e
 - **Limites :** l'examen des tailles et la marge libre ne garantissent ni la capacité réelle du cache, ni les performances, ni la compatibilité du modèle sur l'ordinateur.
 
 Pour le **premier test de conversation réel**, il faudra encore implémenter le chargement du modèle (inférence), contrôler l'architecture et utiliser une machine suffisamment dotée.
+
+## Premier test réel d'un modèle en chat local (alpha)
+
+**Cette fonctionnalité nécessite une machine compatible :** la réussite des tests GitHub ne prouve pas que ton GPU, tes pilotes ou ta RAM permettent de charger Llama ou Qwen.
+
+### Installation facultative des dépendances d'inférence
+
+Le backend de diagnostic reste léger : ni PyTorch ni Transformers ne sont requis pour simplement consulter les modèles. Pour **activer le chat**, installer séparément, **dans le même environnement Python que le backend Studio**, la pile d'inférence :
+
+~~~sh
+cd studio/backend
+python -m pip install -r requirements-inference.txt
+~~~
+
+Pour un GPU NVIDIA, choisir au préalable **la version de PyTorch adaptée au pilote et à CUDA**, en suivant les instructions officielles de PyTorch. Le `pip install` générique peut installer une version CPU seulement ou une variante CUDA inadaptée. Les modes GPU AMD/ROCm et Apple MPS ne sont **pas encore intégrés au module de chat** : ils nécessitent des essais dédiés.
+
+### Parcours d'essai
+
+1. Ouvrir Heretic Studio sur `http://127.0.0.1:5173` avec le backend local démarré sur `127.0.0.1:8765`.
+2. Sélectionner un modèle du catalogue, puis effectuer le **téléchargement explicitement confirmé**. Le téléchargement doit être **complet** pour créer une attestation locale de snapshot.
+3. Pour un premier essai sur un ordinateur sans GPU puissant, privilégier **Qwen2.5-0.5B-Instruct**, plus léger que Llama 3B ou 8B. Dans la section **Premier chat local**, cliquer « Actualiser les modèles téléchargés ».
+4. Choisir le modèle et son matériel (**GPU NVIDIA CUDA**, ou **CPU expérimental et potentiellement très lent**). Les ressources sont comparées à un budget approximatif avant le démarrage.
+5. Cliquer « Charger le modèle ». Le processus isolé charge les poids `.safetensors`, sans connexion réseau, sans exécution de code distant et sans faire d'optimisation Heretic.
+6. Lorsque l'état indique **ready**, envoyer une question de test, par exemple « Explique-moi TCP et UDP ».
+7. Cliquer **Arrêter le modèle** pour terminer le processus enfant et libérer la mémoire.
+
+### API locale
+
+Les routes ci-dessous utilisent les mêmes contrôles **Host local + Origin autorisée + jeton X-Heretic-Token** que le gestionnaire de téléchargement :
+
+- `GET /api/chat/models` : snapshots locaux vérifiés avec reçu de téléchargement complet.
+- `GET /api/chat/current` : retrouver la session de chargement déjà active après un rechargement de la page.
+- `POST /api/chat/start` : demande explicite de chargement (`model_id`, `revision`, `device` = `cuda` ou `cpu`).
+- `GET /api/chat/{session_id}` : état `loading`, `ready`, `failed`, `generating`, `stopped`.
+- `POST /api/chat/{session_id}/generate` : envoi d'une conversation bornée.
+- `GET /api/chat/{session_id}/responses/{request_id}` : consultation de la réponse générée.
+- `POST /api/chat/{session_id}/stop` : terminaison du processus d'inférence.
+
+### Limitations et protections
+
+- **Modèles :** premier chat limité à quelques architectures textuelles du catalogue (Llama, Qwen3, Mistral). La présence dans le catalogue ne prouve pas la compatibilité. Gemma 3 n'est pas encore activé dans le chat car son chemin multimodal doit être vérifié séparément.
+- **Poids :** chargement uniquement depuis un dossier créé par le téléchargement du gestionnaire Studio, doté d'un reçu valide et de fichiers réguliers, sans liens symboliques. `config.json` doit annoncer le type d'architecture attendu, sans `auto_map` distant.
+- **Sécurité :** `trust_remote_code=False`, `local_files_only=True`, `use_safetensors=True`, `HF_HUB_OFFLINE=1`. Les fichiers de modèles restent des contenus externes ; ces précautions ne constituent pas une sandbox de sécurité absolue.
+- **Capacité :** une seule session chargée et une seule génération en cours ; mémoire RAM/VRAM vérifiée selon des heuristiques prudentes. La vérification ne remplace pas un vrai essai.
+- **Messages :** maximum 12 messages, 2 000 caractères par message, 6 000 caractères de contexte texte, 192 nouveaux tokens. Ils ne sont pas envoyés vers un serveur externe par ce module. Les réponses passent temporairement par des fichiers locaux de progression, effacés normalement après lecture ou à l'arrêt ; une panne peut laisser des résidus à supprimer dans `~/.cache/heretic-studio/jobs`.
+- **Annulation :** l'arrêt termine le processus enfant ; en cas de mémoire insuffisante, le chargement peut échouer. Une génération lente peut être interrompue en arrêtant la session.
+- **Responsabilité :** réponses expérimentales, potentiellement erronées. Ce chat ne supprime pas automatiquement les mécanismes de refus et ne modifie aucun modèle.
+- **Cloud :** cette API est destinée exclusivement à l'ordinateur local ; **ne jamais exposer le port 8765 sur Internet**. Une version serveur nécessitera une autre conception (authentification, isolation multiutilisateur, quotas, contrôle d'accès et protection de l'infrastructure).
+
+### Compatibilité Transformers 5 — génération de chat
+
+À partir des versions récentes de Transformers, `apply_chat_template(..., return_tensors="pt")`
+peut renvoyer un objet `BatchEncoding` contenant les entrées nommées
+`input_ids` et `attention_mask`, et non un tenseur unique.
+Le chat prépare désormais explicitement `return_dict=True` et passe les
+entrées à `model.generate(**inputs)`, au lieu de les envoyer en argument
+positionnel. Cette correction ne nécessite **aucun nouveau téléchargement du
+modèle ni réinstallation de PyTorch**.
+
+Si le modèle affiche `ready` mais que la réponse échoue, la zone rouge
+indique maintenant **l'étape et la classe d'erreur** sans afficher les
+exceptions brutes ni le contenu de la conversation. Le texte de la question
+reste dans le champ de saisie pour un nouvel essai. Les tests automatisés
+simulent la génération et ne remplacent pas un essai réel sur la carte graphique.
+
+#
+## Tester systématiquement la qualité de Qwen (sans téléchargement)
+
+La réussite technique (chargement, réponse et métriques) ne signifie **pas** que
+les réponses sont correctes. Nous avons ajouté un mini-benchmark **local et
+reproductible**, composé de **16 scénarios / 21 questions** en français :
+TCP/UDP, correction d'une erreur, reformulation, contexte, logique, traduction,
+JSON, grammaire, code, calculs et reconnaissance de l'incertitude.
+
+Ce sont des **données de test rédigées pour le projet** dans
+`studio/backend/benchmarks/french_quality_v2.json` (par défaut).
+L'ancienne suite `french_quality_v1.json` est conservée pour reproduire
+les premiers résultats (avec son scénario de correction imparfait).
+La commande `--suite v1` permet de la rejouer. Elles ne sont ni un
+corpus d'entraînement de Qwen, ni une étude représentative de sa fiabilité.
+Le script ne fait **aucune requête Internet, aucune installation et aucun
+téléchargement de modèle**. Il réutilise seulement le modèle **déjà chargé**
+dans Heretic Studio.
+
+1. Lancer le backend et le frontend, ouvrir **Chat local** et **Charger le
+   modèle** Qwen ; attendre « Modèle prêt à répondre ».
+2. Dans un **troisième terminal**, depuis `studio/backend`, exécuter :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --limit 3 --mode stable
+~~~
+
+3. Pour toute la batterie en mode déterministe (plus long) :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --all --mode stable
+~~~
+
+4. Pour comparer les formulations avec échantillonnage contrôlé :
+
+~~~powershell
+.\.venv\Scripts\python.exe benchmark_chat.py --all --mode varied
+~~~
+
+Sous Linux/macOS, remplacer `.\.venv\Scripts\python.exe` par
+`./.venv/bin/python`. On peut aussi préciser `--max-tokens 64` ou
+`--limit 5` pour réduire le temps de calcul. **N'envoyer aucune autre
+question dans le chat pendant l'exécution du script**, car le backend ne
+permet qu'une génération à la fois.
+
+Dans la v2, le deuxième tour TCP/UDP ne prête plus au modèle une
+affirmation qu'il n'a pas forcément faite, et le premier tour n'est plus
+automatiquement « réussi » parce que le texte contient le mot TCP.
+Ne pas comparer directement les scores formels de v1 et de v2.
+
+Chaque exécution enregistre son rapport **sur l'ordinateur uniquement** sous
+`~/.cache/heretic-studio/benchmarks/`, avec les questions, réponses, temps,
+tokens, évaluations de forme et **critères de correction humaine**. Le rapport
+peut contenir les réponses du modèle : ne pas y ajouter des données privées.
+Les contrôles automatiques vérifient uniquement certains formats simples
+(nombre exact, JSON, présence d'un mot, nombre approximatif de phrases ou
+réponse non identique) ; **ils ne constituent pas un score d'exactitude
+factuelle**. Lire les réponses avec leurs références manuelles avant de
+conclure qu'un modèle est bon ou mauvais.
+
+### Chat : nouvelle conversation et modes de génération
+
+- **Nouvelle conversation** : efface l'historique affiché et envoyé au
+  modèle, sans décharger les poids ni relancer PyTorch. Accessible lorsque
+  le modèle est prêt et qu'aucune réponse n'est en cours.
+- **Stable** : génération déterministe, adaptée à la reproductibilité.
+- **Varié** : température `0.7`, `top_p=0.9`, pénalité de répétition `1.08`.
+  Il peut varier les formulations, **sans corriger à lui seul les faits**.
+- Une comparaison prudente des dernières réponses affiche un avertissement
+  si un texte se répète presque à l'identique. Cet avertissement ne dit
+  pas si la réponse est vraie.
+
+## Améliorations du chat local : longueur, Markdown et métriques
+
+- Trois styles de consigne **fixes et locaux** : concis, standard, pédagogique.
+  Ils guident le modèle mais **n'assurent pas** qu'il respectera le nombre de
+  phrases demandé, ni que ses réponses seront exactes (notamment Qwen 0,5B).
+- Longueur réglable dans l'interface : **128, 256, 384 ou 512** nouveaux tokens,
+  au lieu d'un plafond systématique de 128 dans l'UI. Une réponse interrompue
+  par la limite affiche une alerte explicite.
+- Rendu local sécurisé d'un **sous-ensemble de Markdown** : paragraphes, titres,
+  gras, italique, listes et blocs de code ; contenu interprété comme du texte
+  React, **sans HTML brut, liens exécutables ou bibliothèque supplémentaire**.
+- Affichage, par réponse, des tokens générés, de la durée de génération et de
+  la vitesse (tokens/s). Sur CUDA, synchronisation avant et après la génération
+  pour améliorer l'exactitude. RAM du **processus d'inférence**, VRAM **allouée
+  par PyTorch** et pic alloué depuis le chargement sont relevés après réponse.
+  Ces valeurs n'incluent pas toutes les allocations des pilotes ou des autres
+  applications. Les instantanés de RAM et VRAM libres sur la machine sont
+  indiqués séparément : ce ne sont pas des mesures propres au seul modèle.
+- Deux questions de test préremplies facilitent la comparaison manuelle, sans
+  inventer de score automatique d'exactitude.
+- Limites conservées : une session et une génération à la fois, 12 messages
+  maximum et 6 000 caractères au total, aucune optimisation Heretic activée.
+
+Pour obtenir ces améliorations : `git pull --ff-only origin feature/heretic-studio-local-chat`,
+redémarrer Uvicorn, puis rafraîchir Chrome. Aucun nouvel achat de données :
+**pas de dépendance npm ajoutée, pas de nouveau modèle et pas de réinstallation
+de PyTorch**.
+
+### Tests
+
+Les tests automatisés vérifient les conditions de sécurité et simulent le processus enfant ; **ils ne chargent pas de vrai modèle**. La dernière étape de recette est un essai manuel de téléchargement + démarrage + conversation + arrêt sur un GPU compatible.
+
+## Récupérer le téléchargement interrompu de Qwen2.5-0.5B sans Internet
+
+Sur certaines sessions Windows, le processus de téléchargement a pu s'arrêter **après** avoir transféré les fichiers, mais **avant** d'écrire `heretic-studio-snapshot.json`. Le dossier contient alors huit fichiers, alors que le journal reste à 7/8. **Ne recommence pas un téléchargement de 1 Go avant de vérifier les fichiers existants.**
+
+Dans PowerShell, après avoir récupéré la dernière version de la branche, ouvrir `studio/backend` et exécuter :
+
+~~~powershell
+.\\.venv\\Scripts\\python.exe recover_snapshot.py
+~~~
+
+La vérification est **entièrement hors ligne et non destructive**. Pour cette première récupération, elle est délibérément limitée à **Qwen/Qwen2.5-0.5B-Instruct**, avec les huit fichiers attendus, le total connu de **999 591 264 octets**, une révision Git Hugging Face cohérente et une trace locale du téléchargement dans `~/.cache/heretic-studio/jobs`. Elle recalcule une empreinte cryptographique de chaque fichier et la compare aux métadonnées Hugging Face locales (SHA-256 pour les poids LFS, SHA-1 avec préfixe Git blob pour les fichiers Git). L'égalité des tailles seules n'est **pas** une preuve d'intégrité.
+
+Si et seulement si le résultat affiche **VÉRIFICATION RÉUSSIE**, enregistrer le reçu :
+
+~~~powershell
+.\\.venv\\Scripts\\python.exe recover_snapshot.py --repair
+~~~
+
+Le mode `--repair` n'utilise pas le réseau, **ne télécharge aucun modèle**, et n'écrit que le fichier de validation final, après tous les contrôles. S'il manque un fichier, une métadonnée ou si une empreinte ne correspond pas, il **refuse l'opération sans créer de reçu**. Ensuite, dans l'interface **Chat local**, cliquer « Actualiser les modèles téléchargés » ; Qwen devrait apparaître.
+
+Cette récupération ciblée des fichiers déjà présents n'est **pas** un système général de reprise des téléchargements. Le rétablissement de la progression après fermeture du navigateur et la gestion des autres modèles seront traités séparément.
 
 ## Sécurité et architecture
 
