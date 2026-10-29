@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { DownloadManager } from './DownloadManager';
 import { HardwareEstimator } from './HardwareEstimator';
 import { SoftwareDiagnostics } from './SoftwareDiagnostics';
 
@@ -88,7 +89,7 @@ export function Models() {
           <span className="eyebrow">02 / BIBLIOTHÈQUE</span>
           <h2 id="models-title">Explorer les modèles IA</h2>
         </div>
-        <span className="readonly-badge">Consultation uniquement</span>
+        <span className="readonly-badge">Expérimental · Téléchargement sur confirmation</span>
       </div>
       <p className="model-intro">Découvre quelques modèles utiles pour nos futurs tests. Les fiches n'attestent pas encore de leur compatibilité avec Heretic ou avec ton matériel.</p>
       {catalogError && <p className="error" role="alert">{catalogError}</p>}
@@ -121,6 +122,7 @@ export function Models() {
       )}
       <HardwareEstimator modelId={selectedModel} />
       <SoftwareDiagnostics />
+      <DownloadManager modelId={selectedModel} />
       <div className="hub-panel">
         <div>
           <span className="eyebrow">RECHERCHE EXTERNE</span>
