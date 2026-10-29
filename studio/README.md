@@ -223,8 +223,11 @@ simulent la génération et ne remplacent pas un essai réel sur la carte graphi
   React, **sans HTML brut, liens exécutables ou bibliothèque supplémentaire**.
 - Affichage, par réponse, des tokens générés, de la durée de génération et de
   la vitesse (tokens/s). Sur CUDA, synchronisation avant et après la génération
-  pour améliorer l'exactitude. RAM et VRAM libres : instantanés système, **pas
-  des mesures de consommation attribuables au seul modèle**.
+  pour améliorer l'exactitude. RAM du **processus d'inférence**, VRAM **allouée
+  par PyTorch** et pic alloué depuis le chargement sont relevés après réponse.
+  Ces valeurs n'incluent pas toutes les allocations des pilotes ou des autres
+  applications. Les instantanés de RAM et VRAM libres sur la machine sont
+  indiqués séparément : ce ne sont pas des mesures propres au seul modèle.
 - Deux questions de test préremplies facilitent la comparaison manuelle, sans
   inventer de score automatique d'exactitude.
 - Limites conservées : une session et une génération à la fois, 12 messages
