@@ -13,10 +13,22 @@ import sys
 import tempfile
 import time
 from pathlib import Path
+from typing import Any
 
 MAX_MESSAGES = 12
 MAX_CHARACTERS = 6000
 MAX_TOKENS = 192
+
+
+def resolve_transformer_factories() -> tuple[Any, Any]:
+    """Resolve classes through module attributes (Transformers is lazy-loaded).
+
+    Accessing vars(transformers) bypasses its __getattr__ hook and can
+    raise KeyError even when Transformers is correctly installed.
+    """
+    module = importlib.import_module("transformers")
+    model_name, tokenizer_name = "AutoModelForCausalLM", "AutoTokenizer"
+    return getattr(module, model_name), getattr(module, tokenizer_name)
 
 
 def _status(path: Path, value: dict[str, object]) -> None:
@@ -71,22 +83,23 @@ def main() -> int:
         return 2
 
     _status(status_path, {"state": "loading", "message": "Chargement du modèle local…"})
+    phase = "dépendances"
     try:
         # Optional heavy dependencies: intentionally installed separately from Studio.
         torch = importlib.import_module("torch")
-        transformers = importlib.import_module("transformers")
-        exports = vars(transformers)
-        AutoModelForCausalLM = exports["AutoModelForCausalLM"]
-        AutoTokenizer = exports["AutoTokenizer"]
+        AutoModelForCausalLM, AutoTokenizer = resolve_transformer_factories()
 
+        phase = "CUDA"
         if device == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA unavailable")
 
+        phase = "tokenizer"
         tokenizer = AutoTokenizer.from_pretrained(
             model_dir,
             local_files_only=True,
             trust_remote_code=False,
         )
+        phase = "poids du modèle"
         model = AutoModelForCausalLM.from_pretrained(
             model_dir,
             local_files_only=True,
@@ -96,16 +109,20 @@ def main() -> int:
             device_map="cuda:0" if device == "cuda" else "cpu",
         )
         model.eval()
+        phase = "modèle de conversation"
         if tokenizer.chat_template is None:
             raise RuntimeError("Missing chat template")
-    except Exception:
+    except Exception as exc:
+        # Expose only the phase and the exception class, never local paths
+        # or raw dependency exceptions that could contain sensitive text.
         _status(
             status_path,
             {
                 "state": "failed",
                 "message": (
-                    "Chargement impossible. Vérifie les dépendances, la mémoire et "
-                    "la compatibilité du modèle avec Transformers."
+                    f"Chargement échoué à l'étape {phase} "
+                    f"({type(exc).__name__}). "
+                    "Vérifie la compatibilité de l'environnement local."
                 ),
             },
         )
