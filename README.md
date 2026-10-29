@@ -81,6 +81,22 @@ The community has created and published
 models with Heretic.
 
 
+## Heretic Studio (local experimental interface)
+
+The `studio/` directory contains **Heretic Studio**, an experimental French-language
+local dashboard for model discovery, hardware/software diagnostics, explicit
+Hugging Face model downloads, and an opt-in first local inference chat.
+
+**Heretic Studio is not a replacement for the original Heretic CLI.**
+Its inference chat does not modify model weights. Do not expose its
+development backend to the public Internet; this alpha is designed for
+`127.0.0.1` on a single computer.
+
+See **[studio/README.md](studio/README.md)** for installation, supported
+model architectures, the optional inference dependencies, and the
+current limits of hardware compatibility and security.
+
+
 ## Usage
 
 Prepare a Python 3.10+ environment with PyTorch 2.2+ installed as appropriate
