@@ -193,7 +193,9 @@ def _download_authorization(request: Request) -> None:
     _trusted_origin(request)
     supplied = request.headers.get("x-heretic-token", "")
     if not secrets.compare_digest(supplied, nonce()):
-        raise HTTPException(status_code=403, detail="Session de téléchargement non autorisée.")
+        raise HTTPException(
+            status_code=403, detail="Session de téléchargement non autorisée."
+        )
 
 
 @app.get("/api/downloads/session")
@@ -214,7 +216,9 @@ def download_preview(
 
 
 @app.post("/api/downloads/start")
-def download_start(request: Request, payload: StartDownloadRequest) -> dict[str, object]:
+def download_start(
+    request: Request, payload: StartDownloadRequest
+) -> dict[str, object]:
     _download_authorization(request)
     try:
         return start_download(payload.plan_id, payload.license_accepted)
