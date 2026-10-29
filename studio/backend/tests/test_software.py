@@ -5,6 +5,7 @@ import subprocess
 import sys
 import unittest
 from pathlib import Path
+from typing import cast
 from unittest.mock import Mock, patch
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
@@ -54,16 +55,23 @@ class SoftwareDiagnosticsTests(unittest.TestCase):
         self.assertEqual(run.call_args.args[0][:3], [sys.executable, "-I", "-c"])
         self.assertNotIn("shell", run.call_args.kwargs)
 
-    @patch("software.subprocess.run", side_effect=subprocess.TimeoutExpired("python", 15))
+    @patch(
+        "software.subprocess.run", side_effect=subprocess.TimeoutExpired("python", 15)
+    )
     def test_runtime_timeout_is_not_compatibility_failure(self, _: Mock) -> None:
         self.assertEqual(torch_runtime(), {"status": "timeout"})
 
     def test_non_json_torch_probe_is_rejected(self) -> None:
-        with patch("software.subprocess.run", return_value=Mock(returncode=0, stdout="oops")):
+        with patch(
+            "software.subprocess.run", return_value=Mock(returncode=0, stdout="oops")
+        ):
             self.assertEqual(torch_runtime(), {"status": "probe_failed"})
 
     def test_unsupported_probe_values_are_rejected(self) -> None:
-        cp = Mock(returncode=0, stdout='{"cuda_available":"yes","mps_available":false,"cuda_devices":1}')
+        cp = Mock(
+            returncode=0,
+            stdout='{"cuda_available":"yes","mps_available":false,"cuda_devices":1}',
+        )
         with patch("software.subprocess.run", return_value=cp):
             self.assertEqual(torch_runtime(), {"status": "probe_failed"})
 
@@ -75,7 +83,8 @@ class SoftwareDiagnosticsTests(unittest.TestCase):
         ):
             result = nvidia_driver()
         self.assertEqual(result["status"], "detected")
-        self.assertEqual(result["gpus"][0]["memory_total_gib"], 8.0)
+        gpus = cast(list[dict[str, object]], result["gpus"])
+        self.assertEqual(gpus[0]["memory_total_gib"], 8.0)
         self.assertEqual(run.call_args.kwargs["timeout"], 4)
         self.assertEqual(run.call_args.args[0][0], "/usr/bin/nvidia-smi")
 
@@ -91,8 +100,12 @@ class SoftwareDiagnosticsTests(unittest.TestCase):
 
         with patch("software.importlib.metadata.version", side_effect=mocked_version):
             versions = installed_packages()
-        self.assertEqual(next(x for x in versions if x["package"] == "torch")["version"], "2.9.0")
-        self.assertIsNone(next(x for x in versions if x["package"] == "peft")["version"])
+        self.assertEqual(
+            next(x for x in versions if x["package"] == "torch")["version"], "2.9.0"
+        )
+        self.assertIsNone(
+            next(x for x in versions if x["package"] == "peft")["version"]
+        )
 
 
 if __name__ == "__main__":
