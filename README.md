@@ -110,6 +110,8 @@ Nous avons développé :
 | **Qualité et performances** | Styles de réponses (concis, standard, pédagogique), limite réglable de 128 à 512 nouveaux tokens, alerte de troncature, tokens/s, durée, RAM du processus et allocations PyTorch CUDA. |
 | **Récupération ciblée** | Vérification **hors ligne** des fichiers Qwen2.5-0.5B-Instruct déjà transférés, avant de finaliser un téléchargement interrompu. |
 
+**Essai réel réalisé :** sous Windows, un **Qwen2.5-0.5B-Instruct** téléchargé a été chargé et interrogé en local avec une **NVIDIA RTX 3050 Laptop (6 Go VRAM)**. Sur deux réponses de test : environ **4,5 à 5,4 tokens/s**, **1,71 Gio de RAM pour le processus** et **0,93 Gio de VRAM allouée par PyTorch**. Ces résultats sont **des observations sur une seule machine**, pas des prérequis ni des promesses de performance. Les réponses ont également montré des **erreurs factuelles** ; une exécution réussie ne prouve pas la fiabilité du modèle.
+
 **Ce qui n'est pas encore disponible dans Studio :** exécution des routines d'abliteration Heretic, optimisation automatisée, export de modèles modifiés, comparaison automatique de leur exactitude, installation « un clic », mode multiutilisateur ou hébergement cloud. Ces capacités ne doivent pas être déduites de la présence du moteur d'origine dans le dépôt.
 
 ### Prérequis
@@ -204,6 +206,29 @@ npm run dev
 ~~~
 
 Ouvrir **http://127.0.0.1:5173**. Pour le chat local, installer les dépendances depuis `studio/backend/requirements-inference.txt` avec le Python de l'environnement virtuel, en choisissant le build PyTorch adapté à la plateforme. Le chat **CPU** peut être lent ; la détection NVIDIA et CUDA n'est pas applicable à tous les ordinateurs.
+
+### Démarrer Studio les fois suivantes (sans réinstaller)
+
+Les paquets Python, les modules npm et les poids déjà présents ne doivent **pas** être retéléchargés à chaque utilisation. Les deux serveurs sont toutefois nécessaires tant que cette alpha n'est pas empaquetée en application de bureau.
+
+**Windows, terminal 1 (à la racine du dépôt) :**
+
+~~~powershell
+cd studio\backend
+.\.venv\Scripts\python.exe -m uvicorn app:app --host 127.0.0.1 --port 8765
+~~~
+
+**Windows, terminal 2 (à la racine du dépôt) :**
+
+~~~powershell
+cd studio\frontend
+npm run dev
+~~~
+
+Sous Linux/macOS, les commandes sont identiques, à l'exception du Python de l'environnement virtuel : `./.venv/bin/python` depuis `studio/backend`.
+
+Ouvrir `http://127.0.0.1:5173`. Pour fermer proprement : cliquer **Arrêter le modèle** dans le chat, puis utiliser **Ctrl+C** dans les deux terminaux.
+
 
 ### Premiers pas dans l'interface
 
