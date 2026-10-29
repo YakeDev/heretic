@@ -128,6 +128,29 @@ def chat_messages(messages: list[dict[str, str]], style: str) -> list[dict[str, 
     return [{"role": "system", "content": CHAT_STYLES[style]}, *messages]
 
 
+def process_memory_metrics(torch: Any, device: str) -> dict[str, float]:
+    """Best-effort memory snapshot for *this* inference process only."""
+    metrics: dict[str, float] = {}
+    try:
+        psutil = importlib.import_module("psutil")
+        metrics["process_ram_gib"] = round(
+            psutil.Process().memory_info().rss / 1024**3, 2
+        )
+    except (ImportError, OSError, AttributeError):
+        pass
+    if device == "cuda":
+        try:
+            metrics["torch_vram_gib"] = round(
+                torch.cuda.memory_allocated() / 1024**3, 2
+            )
+            metrics["torch_peak_vram_gib"] = round(
+                torch.cuda.max_memory_allocated() / 1024**3, 2
+            )
+        except (RuntimeError, OSError, AttributeError):
+            pass
+    return metrics
+
+
 def main() -> int:
     # The parent explicitly sets offline mode; repeat for stand-alone safety.
     os.environ["HF_HUB_OFFLINE"] = "1"
@@ -248,6 +271,7 @@ def main() -> int:
                         else 0,
                         "finish_reason": reason,
                         "max_new_tokens": command["max_new_tokens"],
+                        **process_memory_metrics(torch, device),
                     },
                 )
             except Exception as exc:
