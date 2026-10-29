@@ -20,11 +20,7 @@ class RecoveryTests(unittest.TestCase):
         self.root = Path(self.temp.name)
         self.storage = self.root / "models"
         self.jobs = self.root / "jobs"
-        self.snapshot = (
-            self.storage
-            / "Qwen--Qwen2.5-0.5B-Instruct"
-            / ("a" * 40)
-        )
+        self.snapshot = self.storage / "Qwen--Qwen2.5-0.5B-Instruct" / ("a" * 40)
         self.snapshot.mkdir(parents=True)
         self.jobs.mkdir()
         self.payloads: dict[str, bytes] = {}
