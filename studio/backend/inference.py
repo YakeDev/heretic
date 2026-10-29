@@ -22,6 +22,7 @@ from downloads import JOBS, STORAGE, allowed_file
 from hardware import GIB, system_resources
 
 SUPPORTED_MODELS = {
+    "Qwen/Qwen2.5-0.5B-Instruct": "qwen2",
     "meta-llama/Llama-3.2-3B-Instruct": "llama",
     "meta-llama/Meta-Llama-3.1-8B-Instruct": "llama",
     "Qwen/Qwen3-4B-Instruct-2507": "qwen3",
@@ -162,7 +163,7 @@ def _enough_resources(model_id: str, device: str) -> None:
     params_billions = float(model["parameters"].rstrip("B"))
     if device == "cpu":
         # Inference on CPU uses fp32, not the fp16 UI heuristic.
-        needed_gib = params_billions * 4 * 10**9 / GIB * 1.4 + 5
+        needed_gib = params_billions * 4 * 10**9 / GIB * 1.4 + 3
         ram = info.get("ram_available_gb")
         if not isinstance(ram, (int, float)) or ram < needed_gib:
             raise InferenceError(
