@@ -77,6 +77,9 @@ class ChatQualityTests(unittest.TestCase):
                         "tokens_per_second": 15.7,
                         "finish_reason": "length",
                         "max_new_tokens": 80,
+                        "process_ram_gib": 2.1,
+                        "torch_vram_gib": 1.7,
+                        "torch_peak_vram_gib": 2.0,
                     }
                 ),
                 encoding="utf-8",
@@ -96,6 +99,9 @@ class ChatQualityTests(unittest.TestCase):
                 self.assertEqual(response["generated_tokens"], 80)
                 self.assertEqual(response["tokens_per_second"], 15.7)
                 self.assertEqual(response["elapsed_seconds"], 5.1)
+                self.assertEqual(response["process_ram_gib"], 2.1)
+                self.assertEqual(response["torch_vram_gib"], 1.7)
+                self.assertEqual(response["torch_peak_vram_gib"], 2.0)
                 self.assertEqual(session["request_id"], None)
                 self.assertFalse(result.exists())
 
