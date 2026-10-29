@@ -224,6 +224,46 @@ class InferenceTests(unittest.TestCase):
         assert inference._session is not None
         self.assertEqual(inference._session["request_id"], None)
 
+    def test_failed_generation_reports_phase_without_leaking_raw_errors(self) -> None:
+        session_id, _ = self._start_mock_session()
+        assert inference._session is not None
+        Path(inference._session["status_file"]).write_text(
+            '{"state":"ready"}', encoding="utf-8"
+        )
+        started = self.client.post(
+            "/api/chat/" + session_id + "/generate",
+            headers=self.headers,
+            json={
+                "messages": [{"role": "user", "content": "Bonjour Qwen"}],
+                "max_new_tokens": 64,
+            },
+        )
+        self.assertEqual(started.status_code, 200)
+        request_id = started.json()["request_id"]
+        destination = self.jobs_dir / f"chat-{session_id}-{request_id}.json"
+        destination.write_text(
+            json.dumps(
+                {
+                    "state": "failed",
+                    "phase": "tokenisation",
+                    "error_type": "AttributeError",
+                    "message": "SECRET USER DATA",
+                }
+            ),
+            encoding="utf-8",
+        )
+        status = self.client.get(
+            f"/api/chat/{session_id}/responses/{request_id}",
+            headers=self.headers,
+        )
+        self.assertEqual(status.status_code, 200)
+        response = status.json()
+        self.assertEqual(response["state"], "failed")
+        self.assertIn("tokenisation", response["message"])
+        self.assertIn("AttributeError", response["message"])
+        self.assertNotIn("SECRET", response["message"])
+        self.assertFalse(destination.exists())
+
     def test_reject_excessive_context_and_oversized_output(self) -> None:
         session_id, _ = self._start_mock_session()
         assert inference._session is not None
