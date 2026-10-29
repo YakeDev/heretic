@@ -1,5 +1,6 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { HardwareEstimator } from './HardwareEstimator';
+import { SoftwareDiagnostics } from './SoftwareDiagnostics';
 
 type CuratedModel = {
   id: string;
@@ -119,6 +120,7 @@ export function Models() {
         </div>
       )}
       <HardwareEstimator modelId={selectedModel} />
+      <SoftwareDiagnostics />
       <div className="hub-panel">
         <div>
           <span className="eyebrow">RECHERCHE EXTERNE</span>
