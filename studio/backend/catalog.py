@@ -61,7 +61,11 @@ class HubUnavailable(Exception):
 def curated_catalog() -> list[dict[str, str]]:
     """Return safe display metadata only, without contacting the Hub."""
     return [
-        {**item, "url": f"https://huggingface.co/{item['id']}", "compatibility": "non_vérifiée"}
+        {
+            **item,
+            "url": f"https://huggingface.co/{item['id']}",
+            "compatibility": "non_vérifiée",
+        }
         for item in CURATED_MODELS
     ]
 
@@ -77,7 +81,12 @@ def search_hugging_face(query: str) -> list[dict[str, object]]:
     try:
         response = httpx.get(
             HUB_SEARCH_ENDPOINT,
-            params={"search": query, "limit": MAX_RESULTS, "sort": "downloads", "direction": -1},
+            params={
+                "search": query,
+                "limit": MAX_RESULTS,
+                "sort": "downloads",
+                "direction": -1,
+            },
             headers={"Accept": "application/json"},
             timeout=5.0,
             follow_redirects=False,
