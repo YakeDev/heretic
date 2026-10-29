@@ -47,7 +47,7 @@ def api_request(
     except (urllib.error.URLError, TimeoutError) as exc:
         raise RuntimeError("Backend local inaccessible on 127.0.0.1:8765.") from exc
     if not isinstance(data, dict):
-        raise RuntimeError("Unexpected backend reply")
+        raise TypeError("Unexpected backend reply")
     return data
 
 
@@ -100,7 +100,7 @@ def load_cases(path: Path = SUITE) -> list[dict[str, Any]]:
     ids: set[str] = set()
     for case in cases:
         if not isinstance(case, dict) or not isinstance(case.get("id"), str):
-            raise ValueError("Missing benchmark case id")
+            raise TypeError("Missing benchmark case id")
         name = case["id"]
         if not re.fullmatch(r"[a-z0-9-]{3,64}", name) or name in ids:
             raise ValueError("Invalid or duplicate benchmark case id")
@@ -110,11 +110,11 @@ def load_cases(path: Path = SUITE) -> list[dict[str, Any]]:
             raise ValueError("Invalid benchmark turn count")
         for turn in turns:
             if not isinstance(turn, dict) or not isinstance(turn.get("prompt"), str):
-                raise ValueError("Invalid benchmark prompt")
+                raise TypeError("Invalid benchmark prompt")
             if not turn["prompt"].strip() or len(turn["prompt"]) > 2000:
                 raise ValueError("Benchmark prompt outside API limits")
             if not isinstance(turn.get("review"), str):
-                raise ValueError("Missing human-review instructions")
+                raise TypeError("Missing human-review instructions")
     return cases
 
 

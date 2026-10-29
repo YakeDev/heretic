@@ -1,6 +1,5 @@
 """Offline benchmark fixture and formal evaluation tests (no model download)."""
 
-import json
 import sys
 import unittest
 from pathlib import Path
