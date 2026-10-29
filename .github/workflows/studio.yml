@@ -1,0 +1,46 @@
+name: Heretic Studio checks
+
+on:
+  push:
+    branches: [master]
+    paths:
+      - "studio/**"
+      - ".github/workflows/studio.yml"
+  pull_request:
+    branches: [master]
+    paths:
+      - "studio/**"
+      - ".github/workflows/studio.yml"
+
+permissions:
+  contents: read
+
+jobs:
+  backend:
+    name: Studio backend tests
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      - name: Install backend dependencies
+        run: python -m pip install -r studio/backend/requirements-dev.txt
+      - name: Run isolated Studio tests
+        run: python -m unittest discover -s studio/backend/tests -v
+
+  frontend:
+    name: Studio frontend build
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: studio/frontend
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+      - name: Install frontend dependencies
+        run: npm install --no-audit --no-fund
+      - name: Typecheck and build
+        run: npm run build
