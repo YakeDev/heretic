@@ -110,6 +110,10 @@ export function LocalChat() {
           setNotice('Réponse terminée · ' + (response.generated_tokens ?? 0) + ' nouveaux tokens.');
         } else {
           setError(response.message ?? 'Le modèle n’a pas pu répondre.');
+          // Restore the failed prompt without asking the user to retype it.
+          setDraft((current) => current || pendingUserText);
+          setPendingUserText('');
+          setNotice('Échec de génération : tu peux réessayer sans recharger le modèle.');
         }
         setRequestId('');
       }).catch((cause) => {
