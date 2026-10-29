@@ -401,3 +401,5 @@ footer{padding:37px 0 10px;border-top:1px solid #263a46;margin-top:53px;font-siz
 .model-selection-next a:hover,.chat-hint a:hover{text-decoration-thickness:2px;color:#c6ffe2}
 .chat-hint a{color:#adeccd;text-decoration:underline;text-underline-offset:3px}
 @media(max-width:680px){.chat-options summary span{font-size:10px}.chat-evaluation-details .chat-evaluation{display:grid}.chat-evaluation-details button{width:100%}}
+
+.model-license-note{margin:10px 0 28px;color:#b7c9b6;border-left:3px solid #8cc4a5;background:#122b2b;padding:13px 15px;font-size:12px;line-height:1.7;border-radius:0 9px 9px 0}
