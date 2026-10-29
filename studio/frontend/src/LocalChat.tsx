@@ -8,6 +8,9 @@ type ReplyStats = {
   tokens_per_second?: number;
   finish_reason?: 'eos' | 'length' | 'unknown';
   max_new_tokens?: number;
+  process_ram_gib?: number;
+  torch_vram_gib?: number;
+  torch_peak_vram_gib?: number;
 };
 type Message = { role: 'user' | 'assistant'; content: string; stats?: ReplyStats };
 type ResponseStyle = 'neutral' | 'concise' | 'pedagogical';
@@ -133,6 +136,9 @@ export function LocalChat() {
               tokens_per_second: response.tokens_per_second,
               finish_reason: response.finish_reason,
               max_new_tokens: response.max_new_tokens,
+              process_ram_gib: response.process_ram_gib,
+              torch_vram_gib: response.torch_vram_gib,
+              torch_peak_vram_gib: response.torch_peak_vram_gib,
             },
           }]);
           setPendingUserText('');
@@ -326,6 +332,15 @@ export function LocalChat() {
                 <span>{message.stats.generated_tokens ?? '—'} tokens</span>
                 <span>{message.stats.elapsed_seconds ?? '—'} s de génération</span>
                 <span>{message.stats.tokens_per_second ?? '—'} tokens/s</span>
+                {typeof message.stats.process_ram_gib === 'number' && (
+                  <span>Processus : {message.stats.process_ram_gib.toFixed(2)} Gio RAM</span>
+                )}
+                {typeof message.stats.torch_vram_gib === 'number' && (
+                  <span>PyTorch CUDA : {message.stats.torch_vram_gib.toFixed(2)} Gio VRAM allouée</span>
+                )}
+                {typeof message.stats.torch_peak_vram_gib === 'number' && (
+                  <span>Pic CUDA : {message.stats.torch_peak_vram_gib.toFixed(2)} Gio</span>
+                )}
                 {message.stats.finish_reason === 'length' && (
                   <strong className="chat-truncation">
                     Limite atteinte : cette réponse peut être tronquée.
@@ -363,7 +378,7 @@ export function LocalChat() {
           {resources?.nvidia_gpus?.[0] && (
             <span>VRAM libre (instantané GPU) : {resources.nvidia_gpus[0].memory_free_gb.toFixed(1)} Go</span>
           )}
-          <small>La vitesse inclut uniquement la génération ; les valeurs RAM/VRAM ne mesurent pas la consommation propre au modèle.</small>
+          <small>Durée et vitesse mesurent la génération seule. Mémoire du processus et allocations PyTorch CUDA indiquées par réponse ; les instantanés RAM/VRAM libres sont des mesures système, pas une attribution précise au seul modèle.</small>
         </div>
       )}
       <div className="chat-evaluation">
