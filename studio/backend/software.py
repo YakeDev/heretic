@@ -165,11 +165,15 @@ def inspect_software() -> dict[str, object]:
     if "torch" not in installed:
         warnings.append("PyTorch absent de cet environnement Python.")
     if "bitsandbytes" in installed:
-        warnings.append("bitsandbytes installé ne garantit pas le fonctionnement du mode 4 bits.")
+        warnings.append(
+            "bitsandbytes installé ne garantit pas le fonctionnement du mode 4 bits."
+        )
     if runtime.get("status") in {"timeout", "probe_failed"}:
         warnings.append("La sonde PyTorch a échoué ; aucun verdict de compatibilité.")
     if driver["status"] != "detected":
-        warnings.append("Le pilote NVIDIA n'a pas été identifié ; AMD et Apple ne sont pas exclus.")
+        warnings.append(
+            "Le pilote NVIDIA n'a pas été identifié ; AMD et Apple ne sont pas exclus."
+        )
 
     return {
         "python_version": platform.python_version(),
