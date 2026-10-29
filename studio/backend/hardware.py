@@ -50,6 +50,17 @@ def system_resources(root: Path, nvidia_gpus: list[dict[str, object]]) -> dict[s
     }
 
 
+def _number(value: object) -> float | None:
+    if (
+        isinstance(value, (float, int))
+        and not isinstance(value, bool)
+        and math.isfinite(value)
+        and value >= 0
+    ):
+        return float(value)
+    return None
+
+
 def _available_gpus(info: dict[str, object]) -> list[dict[str, object]]:
     raw = info.get("nvidia_gpus")
     if not isinstance(raw, list):
@@ -58,13 +69,7 @@ def _available_gpus(info: dict[str, object]) -> list[dict[str, object]]:
     for gpu in raw:
         if not isinstance(gpu, dict):
             continue
-        free = gpu.get("memory_free_gb")
-        if (
-            isinstance(free, (int, float))
-            and not isinstance(free, bool)
-            and math.isfinite(free)
-            and free >= 0
-        ):
+        if _number(gpu.get("memory_free_gb")) is not None:
             result.append(gpu)
     return result
 
@@ -107,8 +112,8 @@ def estimate_resources(
     required_ram_gib = max(8, weight_gib * 1.3 + 4)
 
     gpus = _available_gpus(info)
-    best_free = max((float(g["memory_free_gb"]) for g in gpus), default=None)
-    best_total = max((float(g.get("memory_total_gb", 0)) for g in gpus), default=None)
+    best_free = max((free for g in gpus if (free := _number(g.get("memory_free_gb"))) is not None), default=None)
+    best_total = max((total for g in gpus if (total := _number(g.get("memory_total_gb"))) is not None), default=None)
     ram_available = info.get("ram_available_gb")
     disk_available = info.get("disk_available_gb")
 
