@@ -39,7 +39,11 @@ def inspect_nvidia_gpus() -> list[dict[str, object]]:
         return []
     try:
         completed = subprocess.run(
-            [executable, "--query-gpu=name,memory.total,memory.free", "--format=csv,noheader,nounits"],
+            [
+                executable,
+                "--query-gpu=name,memory.total,memory.free",
+                "--format=csv,noheader,nounits",
+            ],
             capture_output=True,
             text=True,
             check=False,
