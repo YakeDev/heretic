@@ -1,6 +1,6 @@
 # Heretic Studio — application locale (alpha)
 
-Interface **expérimentale, en français, locale, avec diagnostic en lecture seule et téléchargement facultatif** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
+Interface **expérimentale, en français, locale, avec diagnostics, téléchargement facultatif et premier chat IA local** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
 
 ## Périmètre disponible
 
@@ -14,7 +14,8 @@ Interface **expérimentale, en français, locale, avec diagnostic en lecture seu
 - Sélection d'un modèle depuis le catalogue, évaluation locale sans téléchargement ni exécution.
 - Diagnostic logiciel déclenché explicitement : versions Python/PyTorch/Transformers/Accelerate/PEFT/bitsandbytes/Hugging Face Hub/Optuna, pilotes NVIDIA accessibles et sondage local PyTorch CUDA/Apple MPS.
 - Téléchargement local **seulement après une vérification des métadonnées, de l'espace disque et une confirmation de licence** ; annulation disponible.
-- **Pas d'exécution, de modification, d'export ni de publication de modèles.** Ces commandes ne sont pas activées.
+- Chat IA local facultatif : chargement d'un snapshot téléchargé dans un processus enfant isolé, réponses courtes, arrêt manuel et libération des ressources.
+- **Aucune optimisation Heretic, modification, export ni publication de modèle n'est activée.** L'inférence ne modifie pas les poids.
 
 ## Lancer le backend (terminal 1)
 
@@ -144,6 +145,57 @@ Les requêtes sur ces endpoints requièrent une origine locale autorisée et l'e
 - **Limites :** l'examen des tailles et la marge libre ne garantissent ni la capacité réelle du cache, ni les performances, ni la compatibilité du modèle sur l'ordinateur.
 
 Pour le **premier test de conversation réel**, il faudra encore implémenter le chargement du modèle (inférence), contrôler l'architecture et utiliser une machine suffisamment dotée.
+
+## Premier test réel d'un modèle en chat local (alpha)
+
+**Cette fonctionnalité nécessite une machine compatible :** la réussite des tests GitHub ne prouve pas que ton GPU, tes pilotes ou ta RAM permettent de charger Llama ou Qwen.
+
+### Installation facultative des dépendances d'inférence
+
+Le backend de diagnostic reste léger : ni PyTorch ni Transformers ne sont requis pour simplement consulter les modèles. Pour **activer le chat**, installer séparément, **dans le même environnement Python que le backend Studio**, la pile d'inférence :
+
+~~~sh
+cd studio/backend
+python -m pip install -r requirements-inference.txt
+~~~
+
+Pour un GPU NVIDIA, choisir au préalable **la version de PyTorch adaptée au pilote et à CUDA**, en suivant les instructions officielles de PyTorch. Le `pip install` générique peut installer une version CPU seulement ou une variante CUDA inadaptée. Les modes GPU AMD/ROCm et Apple MPS ne sont **pas encore intégrés au module de chat** : ils nécessitent des essais dédiés.
+
+### Parcours d'essai
+
+1. Ouvrir Heretic Studio sur `http://127.0.0.1:5173` avec le backend local démarré sur `127.0.0.1:8765`.
+2. Sélectionner un modèle du catalogue, puis effectuer le **téléchargement explicitement confirmé**. Le téléchargement doit être **complet** pour créer une attestation locale de snapshot.
+3. Dans la section **Premier chat local**, cliquer « Actualiser les modèles téléchargés ».
+4. Choisir le modèle et son matériel (**GPU NVIDIA CUDA**, ou **CPU expérimental et potentiellement très lent**). Les ressources sont comparées à un budget approximatif avant le démarrage.
+5. Cliquer « Charger le modèle ». Le processus isolé charge les poids `.safetensors`, sans connexion réseau, sans exécution de code distant et sans faire d'optimisation Heretic.
+6. Lorsque l'état indique **ready**, envoyer une question de test, par exemple « Explique-moi TCP et UDP ».
+7. Cliquer **Arrêter le modèle** pour terminer le processus enfant et libérer la mémoire.
+
+### API locale
+
+Les routes ci-dessous utilisent les mêmes contrôles **Host local + Origin autorisée + jeton X-Heretic-Token** que le gestionnaire de téléchargement :
+
+- `GET /api/chat/models` : snapshots locaux vérifiés avec reçu de téléchargement complet.
+- `POST /api/chat/start` : demande explicite de chargement (`model_id`, `revision`, `device` = `cuda` ou `cpu`).
+- `GET /api/chat/{session_id}` : état `loading`, `ready`, `failed`, `generating`, `stopped`.
+- `POST /api/chat/{session_id}/generate` : envoi d'une conversation bornée.
+- `GET /api/chat/{session_id}/responses/{request_id}` : consultation de la réponse générée.
+- `POST /api/chat/{session_id}/stop` : terminaison du processus d'inférence.
+
+### Limitations et protections
+
+- **Modèles :** premier chat limité à quelques architectures textuelles du catalogue (Llama, Qwen3, Mistral). La présence dans le catalogue ne prouve pas la compatibilité. Gemma 3 n'est pas encore activé dans le chat car son chemin multimodal doit être vérifié séparément.
+- **Poids :** chargement uniquement depuis un dossier créé par le téléchargement du gestionnaire Studio, doté d'un reçu valide et de fichiers réguliers, sans liens symboliques. `config.json` doit annoncer le type d'architecture attendu, sans `auto_map` distant.
+- **Sécurité :** `trust_remote_code=False`, `local_files_only=True`, `use_safetensors=True`, `HF_HUB_OFFLINE=1`. Les fichiers de modèles restent des contenus externes ; ces précautions ne constituent pas une sandbox de sécurité absolue.
+- **Capacité :** une seule session chargée et une seule génération en cours ; mémoire RAM/VRAM vérifiée selon des heuristiques prudentes. La vérification ne remplace pas un vrai essai.
+- **Messages :** maximum 12 messages, 2 000 caractères par message, 6 000 caractères de contexte texte, 192 nouveaux tokens. Les messages restent dans le navigateur et ne sont pas envoyés vers un serveur externe par ce module. Aucun historique persistant n'est enregistré par l'application.
+- **Annulation :** l'arrêt termine le processus enfant ; en cas de mémoire insuffisante, le chargement peut échouer. Une génération lente peut être interrompue en arrêtant la session.
+- **Responsabilité :** réponses expérimentales, potentiellement erronées. Ce chat ne supprime pas automatiquement les mécanismes de refus et ne modifie aucun modèle.
+- **Cloud :** cette API est destinée exclusivement à l'ordinateur local ; **ne jamais exposer le port 8765 sur Internet**. Une version serveur nécessitera une autre conception (authentification, isolation multiutilisateur, quotas, contrôle d'accès et protection de l'infrastructure).
+
+### Tests
+
+Les tests automatisés vérifient les conditions de sécurité et simulent le processus enfant ; **ils ne chargent pas de vrai modèle**. La dernière étape de recette est un essai manuel de téléchargement + démarrage + conversation + arrêt sur un GPU compatible.
 
 ## Sécurité et architecture
 
