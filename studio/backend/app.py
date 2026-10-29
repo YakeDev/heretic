@@ -6,6 +6,7 @@ Launch it on loopback only: uvicorn app:app --host 127.0.0.1 --port 8765
 
 from __future__ import annotations
 
+import secrets
 import shutil
 import subprocess
 import sys
@@ -13,10 +14,20 @@ from pathlib import Path
 from typing import Annotated, Literal
 
 from catalog import HubUnavailable, curated_catalog, search_hugging_face
-from fastapi import FastAPI, HTTPException, Query
+from downloads import (
+    DownloadError,
+    cancel_download,
+    download_status,
+    nonce,
+    preview_download,
+    start_download,
+)
+from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from hardware import estimate_resources, system_resources
+from pydantic import BaseModel
 from software import inspect_software
+from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -24,6 +35,7 @@ else:
     import tomli as tomllib
 
 ROOT = Path(__file__).resolve().parents[2]
+TRUSTED_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
 
 app = FastAPI(
     title="Heretic Studio (local)", version="0.1.0", docs_url=None, redoc_url=None
@@ -31,9 +43,10 @@ app = FastAPI(
 app.add_middleware(
     CORSMiddleware,
     allow_origins=["http://localhost:5173", "http://127.0.0.1:5173"],
-    allow_methods=["GET"],
-    allow_headers=["Accept", "Content-Type"],
+    allow_methods=["GET", "POST"],
+    allow_headers=["Accept", "Content-Type", "X-Heretic-Token"],
 )
+app.add_middleware(TrustedHostMiddleware, allowed_hosts=["127.0.0.1", "localhost"])
 
 
 def inspect_nvidia_gpus() -> list[dict[str, object]]:
@@ -78,7 +91,7 @@ def inspect_nvidia_gpus() -> list[dict[str, object]]:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "mode": "diagnostic-only", "version": "0.1.0"}
+    return {"status": "ok", "mode": "local-download-alpha", "version": "0.2.0"}
 
 
 @app.get("/api/system")
@@ -159,3 +172,72 @@ def hardware_estimate(
 def software_compatibility() -> dict[str, object]:
     """Run explicit, bounded local diagnostics without loading a model."""
     return inspect_software()
+
+
+class PreviewDownloadRequest(BaseModel):
+    model_id: str
+
+
+class StartDownloadRequest(BaseModel):
+    plan_id: str
+    license_accepted: bool
+
+
+def _trusted_origin(request: Request) -> None:
+    if request.headers.get("origin") not in TRUSTED_ORIGINS:
+        raise HTTPException(status_code=403, detail="Origine non autorisée.")
+
+
+def _download_authorization(request: Request) -> None:
+    _trusted_origin(request)
+    supplied = request.headers.get("x-heretic-token", "")
+    if not secrets.compare_digest(supplied, nonce()):
+        raise HTTPException(
+            status_code=403, detail="Session de téléchargement non autorisée."
+        )
+
+
+@app.get("/api/downloads/session")
+def download_session(request: Request) -> dict[str, str]:
+    _trusted_origin(request)
+    return {"token": nonce(), "scope": "local-downloads"}
+
+
+@app.post("/api/downloads/preview")
+def download_preview(
+    request: Request, payload: PreviewDownloadRequest
+) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return preview_download(payload.model_id)
+    except DownloadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.post("/api/downloads/start")
+def download_start(
+    request: Request, payload: StartDownloadRequest
+) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return start_download(payload.plan_id, payload.license_accepted)
+    except DownloadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.get("/api/downloads/{job_id}")
+def download_get_status(request: Request, job_id: str) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return download_status(job_id)
+    except DownloadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.post("/api/downloads/{job_id}/cancel")
+def download_cancel(request: Request, job_id: str) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return cancel_download(job_id)
+    except DownloadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc

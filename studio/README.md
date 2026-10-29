@@ -1,11 +1,11 @@
-# Heretic Studio — fondation locale (alpha)
+# Heretic Studio — application locale (alpha)
 
-Interface **expérimentale, en français, en lecture seule** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
+Interface **expérimentale, en français, locale, avec diagnostic en lecture seule et téléchargement facultatif** pour explorer les informations du moteur Heretic et le matériel de la machine. Le moteur Heretic et ses commandes existantes restent inchangés.
 
 ## Périmètre disponible
 
 - Tableau de bord React accessible dans le navigateur en local.
-- API FastAPI locale : GET /api/health, GET /api/system, GET /api/project, GET /api/models et GET /api/models/search?q=.
+- API FastAPI locale : GET /api/health, GET /api/system, GET /api/project, GET /api/models et GET /api/models/search?q= ; endpoints de téléchargement opt-in (voir ci-dessous).
 - Vue de la mémoire, du processeur, de l'espace disque et des GPU NVIDIA détectables par nvidia-smi.
 - Métadonnées du paquet Heretic lues depuis pyproject.toml.
 - Catalogue local indicatif de modèles Llama, Qwen, Gemma et Mistral.
@@ -13,7 +13,8 @@ Interface **expérimentale, en français, en lecture seule** pour explorer les i
 - **Estimation indicative des ressources** pour les modèles du catalogue : inférence ou optimisation Heretic, FP16 ou bitsandbytes 4 bits.
 - Sélection d'un modèle depuis le catalogue, évaluation locale sans téléchargement ni exécution.
 - Diagnostic logiciel déclenché explicitement : versions Python/PyTorch/Transformers/Accelerate/PEFT/bitsandbytes/Hugging Face Hub/Optuna, pilotes NVIDIA accessibles et sondage local PyTorch CUDA/Apple MPS.
-- **Pas de téléchargement des poids, d'exécution, de modification, d'export ni de publication de modèles.** Les commandes futures ne sont pas activées.
+- Téléchargement local **seulement après une vérification des métadonnées, de l'espace disque et une confirmation de licence** ; annulation disponible.
+- **Pas d'exécution, de modification, d'export ni de publication de modèles.** Ces commandes ne sont pas activées.
 
 ## Lancer le backend (terminal 1)
 
@@ -107,11 +108,48 @@ L'application affiche toujours `compatibility: not_verified`. Le diagnostic conc
 
 Tests : `python -m unittest discover -s studio/backend/tests -v`, et compilation React `cd studio/frontend && npm run build`. Les tests utilisent des mocks pour ne pas lancer réellement PyTorch ou `nvidia-smi`.
 
+## Téléchargement facultatif des modèles (alpha)
+
+Cette étape permet de préparer et télécharger des fichiers de modèles, **mais pas encore de discuter avec eux**. L'inférence et la comparaison seront développées séparément.
+
+1. Dans le catalogue, sélectionner un modèle répertorié.
+2. Dans la section « Télécharger les fichiers du modèle », cliquer « Vérifier les fichiers et le stockage ».
+3. Examiner **la taille réelle indiquée par les métadonnées Hugging Face**, l'espace disponible, la révision épinglée et la fiche de licence.
+4. Accepter les conditions **uniquement si l'on possède les droits nécessaires**, puis confirmer le téléchargement.
+5. Consulter la progression par fichiers entièrement reçus ; l'annulation arrête le processus enfant. Les téléchargements partiels peuvent être conservés et repris par le client Hugging Face.
+
+L'application ne télécharge pas automatiquement. Elle ne demande jamais de token. Les modèles à accès contrôlé (Meta Llama notamment) requièrent l'accord du détenteur des droits et, si nécessaire, une authentification préalable avec la CLI officielle Hugging Face dans le système local.
+
+### API locale
+
+- `GET /api/downloads/session` — initie une session avec protection anti-CSRF, réservée à l'origine du frontend.
+- `POST /api/downloads/preview` — récupère les métadonnées du modèle **du catalogue uniquement**, sans poids, et valide les ressources.
+- `POST /api/downloads/start` — démarre un processus de téléchargement sur confirmation explicite.
+- `GET /api/downloads/{job_id}` — état et progression par fichiers terminés.
+- `POST /api/downloads/{job_id}/cancel` — arrêt du processus de téléchargement.
+
+Les requêtes sur ces endpoints requièrent une origine locale autorisée et l'en-tête `X-Heretic-Token`. Le serveur est destiné à `127.0.0.1:8765`, et non à un hébergement Internet.
+
+### Garanties et limites
+
+- **Autorisation préalable :** seuls les modèles prédéfinis dans `studio/backend/catalog.py` sont téléchargeables dans cette version.
+- **Révision immuable :** la liste de fichiers est obtenue depuis Hugging Face puis épinglée au SHA de commit renvoyé.
+- **Formats :** seuls les fichiers statiques, tokenizers et `.safetensors` sont admis. Les exécutables Python et poids pickle/`.bin` sont rejetés.
+- **Budget de téléchargement :** 35 Gio maximum par modèle et 350 fichiers, avec contrôle d'espace disque et marge de sécurité.
+- **Dossier :** `~/.cache/heretic-studio/models/<organisation--modele>/<revision>` ; les fichiers de progression restent dans `~/.cache/heretic-studio/jobs`.
+- **Processus indépendant :** le téléchargement fonctionne sans exécuter du code de modèle ; l'annulation termine le processus enfant.
+- **Un seul transfert actif à la fois** afin de limiter la consommation de ressources.
+- **Progression :** les octets d'un fichier ne sont comptés qu'après le téléchargement complet de ce fichier, donc la barre peut rester immobile pendant un gros fichier.
+- **Environnement :** le client Hugging Face lit l'authentification locale éventuelle configurée par son outil officiel. Il n'existe pas encore d'interface de login dans Studio.
+- **Limites :** l'examen des tailles et la marge libre ne garantissent ni la capacité réelle du cache, ni les performances, ni la compatibilité du modèle sur l'ordinateur.
+
+Pour le **premier test de conversation réel**, il faudra encore implémenter le chargement du modèle (inférence), contrôler l'architecture et utiliser une machine suffisamment dotée.
+
 ## Sécurité et architecture
 
 - **Local uniquement** : le serveur est lancé sur 127.0.0.1 ; ne pas utiliser --host 0.0.0.0.
-- L'API n'accepte aucune action modifiant ou lançant un modèle ; pas de terminal distant ni d'exécution de commandes arbitraires.
-- La seule commande système exécutée par l'API est nvidia-smi avec arguments fixes et délai d'attente.
+- L'API n'accepte aucune action modifiant ou exécutant un modèle ; seuls les téléchargements explicitement confirmés sont autorisés, sans terminal distant ni commande arbitraire.
+- Les diagnostics utilisent nvidia-smi et une sonde PyTorch encadrée ; le téléchargement lance uniquement un worker Python interne avec arguments fixes.
 - Aucune clé Hugging Face n'est demandée, collectée ou sauvegardée.
 - La recherche utilise exclusivement https://huggingface.co/api/models avec timeout et limite de résultats ; une entrée ne peut pas choisir une URL distante.
 - La recherche renvoie des informations non fiables d'un service tiers : ne pas prendre une fiche pour une preuve de compatibilité ou de sécurité.
