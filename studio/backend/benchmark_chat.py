@@ -222,7 +222,9 @@ def main() -> int:
         "--limit", type=int, default=5, help="Number of cases for a short run (1 to 50)"
     )
     parser.add_argument(
-        "--suite", choices=("v1", "v2"), default="v2",
+        "--suite",
+        choices=("v1", "v2"),
+        default="v2",
         help="Version of the locally bundled evaluation dataset",
     )
     parser.add_argument("--mode", choices=("stable", "varied"), default="stable")
