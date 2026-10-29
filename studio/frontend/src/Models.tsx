@@ -1,6 +1,7 @@
 import { useEffect, useState, type FormEvent } from 'react';
 import { DownloadManager } from './DownloadManager';
 import { HardwareEstimator } from './HardwareEstimator';
+import { LocalChat } from './LocalChat';
 import { SoftwareDiagnostics } from './SoftwareDiagnostics';
 
 type CuratedModel = {
@@ -123,6 +124,7 @@ export function Models() {
       <HardwareEstimator modelId={selectedModel} />
       <SoftwareDiagnostics />
       <DownloadManager modelId={selectedModel} />
+      <LocalChat />
       <div className="hub-panel">
         <div>
           <span className="eyebrow">RECHERCHE EXTERNE</span>
