@@ -48,7 +48,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TRUSTED_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
 
 app = FastAPI(
-    title="Heretic Studio (local)", version="0.1.0", docs_url=None, redoc_url=None
+    title="Heretic Studio (local)", version="0.3.0", docs_url=None, redoc_url=None
 )
 app.add_middleware(
     CORSMiddleware,
@@ -101,7 +101,7 @@ def inspect_nvidia_gpus() -> list[dict[str, object]]:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "mode": "local-download-alpha", "version": "0.2.0"}
+    return {"status": "ok", "mode": "local-inference-alpha", "version": "0.3.0"}
 
 
 @app.get("/api/system")
