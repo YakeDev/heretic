@@ -61,6 +61,7 @@ export function App() {
           <a className="nav-item" href="#models"><span>◈</span> Modèles IA</a>
           <a className="nav-item" href="#machine"><span>▤</span> Mon matériel</a>
           <a className="nav-item" href="#compatibility"><span>⌁</span> Compatibilité</a>
+          <a className="nav-item" href="#software"><span>⚙</span> Logiciels IA</a>
           <a className="nav-item" href="#roadmap"><span>◇</span> Prochaines étapes</a>
         </nav>
         <div className="sidebar-bottom"><div className="status-dot" /> Mode local · Lecture seule</div>
