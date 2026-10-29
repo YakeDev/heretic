@@ -13,7 +13,7 @@ from fastapi.testclient import TestClient
 
 class StudioApiTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(app)
+        self.client = TestClient(app, base_url="http://127.0.0.1:8765")
 
     def test_health_is_explicitly_read_only(self) -> None:
         response = self.client.get("/api/health")
