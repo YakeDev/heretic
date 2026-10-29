@@ -405,3 +405,4 @@ footer{padding:37px 0 10px;border-top:1px solid #263a46;margin-top:53px;font-siz
 .model-license-note{margin:10px 0 28px;color:#b7c9b6;border-left:3px solid #8cc4a5;background:#122b2b;padding:13px 15px;font-size:12px;line-height:1.7;border-radius:0 9px 9px 0}
 .connection-status.pending{color:#f6dfb0;background:#3a3124;border-color:#7b6440}
 .connection-status.pending .status-dot{background:#e9bf71}
+.studio-hero{scroll-margin-top:94px}
