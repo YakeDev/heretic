@@ -1,0 +1,7 @@
+# Optional: only required to test local chat generation on supported hardware.
+# Install after requirements.txt. Use a PyTorch build compatible with your GPU.
+torch>=2.4,<3
+transformers>=4.51,<6
+accelerate>=1,<2
+safetensors>=0.5,<1
+sentencepiece>=0.2,<1
