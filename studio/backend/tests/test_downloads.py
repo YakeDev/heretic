@@ -37,7 +37,9 @@ class DownloadTests(unittest.TestCase):
         downloads._jobs.clear()
         downloads._active_id = None
 
-    def _info(self, files: list[tuple[str, int | None]] | None = None) -> SimpleNamespace:
+    def _info(
+        self, files: list[tuple[str, int | None]] | None = None
+    ) -> SimpleNamespace:
         if files is None:
             files = [
                 ("model.safetensors", 1000),
@@ -67,7 +69,9 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(body["revision"], "a" * 40)
         self.assertEqual(body["total_bytes"], 1100)
         files = downloads._plans[body["plan_id"]]["files"]
-        self.assertEqual({item["path"] for item in files}, {"model.safetensors", "config.json"})
+        self.assertEqual(
+            {item["path"] for item in files}, {"model.safetensors", "config.json"}
+        )
         api.return_value.model_info.assert_called_once_with(
             self.model, files_metadata=True, timeout=15
         )
@@ -130,7 +134,14 @@ class DownloadTests(unittest.TestCase):
         self.assertEqual(result.status_code, 422)
 
     def test_traversal_and_remote_code_names_are_rejected(self) -> None:
-        for value in ("../model.safetensors", "/root/model.safetensors", "x\\evil.safetensors", ".git/config.json", "remote.py", "pytorch_model.bin"):
+        for value in (
+            "../model.safetensors",
+            "/root/model.safetensors",
+            "x\\evil.safetensors",
+            ".git/config.json",
+            "remote.py",
+            "pytorch_model.bin",
+        ):
             self.assertFalse(downloads.allowed_file(value), value)
         self.assertTrue(downloads.allowed_file("model-00001-of-00003.safetensors"))
 
@@ -200,7 +211,9 @@ class DownloadTests(unittest.TestCase):
         }
         with (
             patch("download_worker.sys.stdin", io.StringIO(json.dumps(payload))),
-            patch("download_worker.hf_hub_download", return_value="/cache/file") as fetch,
+            patch(
+                "download_worker.hf_hub_download", return_value="/cache/file"
+            ) as fetch,
         ):
             result = worker_main()
         self.assertEqual(result, 0)
