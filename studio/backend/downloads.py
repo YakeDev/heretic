@@ -47,14 +47,25 @@ def allowed_file(name: str) -> bool:
     if not isinstance(name, str) or "\\" in name or len(name) > 240:
         return False
     path = PurePosixPath(name)
-    if path.is_absolute() or not path.parts or any(
-        part in {"", ".", ".."} or part.startswith(".") for part in path.parts
+    if (
+        path.is_absolute()
+        or not path.parts
+        or any(part in {"", ".", ".."} or part.startswith(".") for part in path.parts)
     ):
         return False
-    if any(ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/" for ch in name):
+    if any(
+        ch not in "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789._-/"
+        for ch in name
+    ):
         return False
     return path.suffix.lower() in {
-        ".safetensors", ".json", ".txt", ".model", ".tiktoken", ".jinja", ".md",
+        ".safetensors",
+        ".json",
+        ".txt",
+        ".model",
+        ".tiktoken",
+        ".jinja",
+        ".md",
     }
 
 
@@ -68,7 +79,9 @@ def _disk_available(path: Path) -> int:
     try:
         return shutil.disk_usage(existing).free
     except OSError as exc:
-        raise DownloadError("Impossible de déterminer le disque disponible.", 503) from exc
+        raise DownloadError(
+            "Impossible de déterminer le disque disponible.", 503
+        ) from exc
 
 
 def preview_download(model_id: str) -> dict[str, object]:
@@ -99,15 +112,21 @@ def preview_download(model_id: str) -> dict[str, object]:
             continue
         size = getattr(sibling, "size", None)
         if not isinstance(size, int) or isinstance(size, bool) or size < 0:
-            raise DownloadError("Taille de certains fichiers inconnue : téléchargement bloqué.", 422)
+            raise DownloadError(
+                "Taille de certains fichiers inconnue : téléchargement bloqué.", 422
+            )
         total += size
         if filename.endswith(".safetensors"):
             has_weights = True
         if total > MAX_BYTES:
-            raise DownloadError("Modèle dépassant la limite de téléchargement de 35 Gio.", 422)
+            raise DownloadError(
+                "Modèle dépassant la limite de téléchargement de 35 Gio.", 422
+            )
         manifest.append({"path": filename, "size": size})
         if len(manifest) > MAX_FILES:
-            raise DownloadError("Modèle contenant trop de fichiers pour ce premier gestionnaire.", 422)
+            raise DownloadError(
+                "Modèle contenant trop de fichiers pour ce premier gestionnaire.", 422
+            )
 
     if not has_weights:
         raise DownloadError(
@@ -115,7 +134,9 @@ def preview_download(model_id: str) -> dict[str, object]:
             422,
         )
     if total <= 0:
-        raise DownloadError("Le dépôt ne fournit pas une estimation de taille utilisable.", 422)
+        raise DownloadError(
+            "Le dépôt ne fournit pas une estimation de taille utilisable.", 422
+        )
 
     dest = STORAGE / model_id.replace("/", "--") / revision
     available = _disk_available(dest)
@@ -171,7 +192,9 @@ def _status_from_disk(job: dict[str, Any]) -> dict[str, object]:
             "total_bytes": job["total_bytes"],
         }
     if not isinstance(raw, dict) or raw.get("state") not in {
-        "downloading", "completed", "failed",
+        "downloading",
+        "completed",
+        "failed",
     }:
         return {"state": "failed", "message": "État du téléchargement invalide."}
     return {
@@ -189,12 +212,16 @@ def start_download(plan_id: str, license_accepted: bool) -> dict[str, object]:
     global _active_id
 
     if not license_accepted:
-        raise DownloadError("Confirme d'abord la licence et les conditions du modèle.", 422)
+        raise DownloadError(
+            "Confirme d'abord la licence et les conditions du modèle.", 422
+        )
 
     with _lock:
         plan = _plans.get(plan_id)
         if plan is None or time.monotonic() > plan["expires"]:
-            raise DownloadError("Préparation expirée. Relance l'analyse du téléchargement.", 422)
+            raise DownloadError(
+                "Préparation expirée. Relance l'analyse du téléchargement.", 422
+            )
         if _active_id is not None:
             active = _jobs.get(_active_id)
             if active is not None and active["process"].poll() is None:
@@ -236,7 +263,9 @@ def start_download(plan_id: str, license_accepted: bool) -> dict[str, object]:
         except (OSError, BrokenPipeError) as exc:
             if "proc" in locals() and proc.poll() is None:
                 proc.terminate()
-            raise DownloadError("Impossible de démarrer le téléchargement.", 503) from exc
+            raise DownloadError(
+                "Impossible de démarrer le téléchargement.", 503
+            ) from exc
 
         job = {
             "process": proc,
@@ -262,16 +291,20 @@ def download_status(job_id: str) -> dict[str, object]:
         result = _status_from_disk(job)
         if job["canceled"]:
             result["state"] = "canceled"
-            result["message"] = "Téléchargement annulé. Les fichiers partiels peuvent être conservés."
+            result["message"] = (
+                "Téléchargement annulé. Les fichiers partiels peuvent être conservés."
+            )
         elif job["process"].poll() is not None and result["state"] == "downloading":
             result["state"] = "failed"
             result["message"] = "Le téléchargement a été interrompu."
-        result.update({
-            "job_id": job_id,
-            "model_id": job["model_id"],
-            "revision": job["revision"],
-            "destination": job["destination"],
-        })
+        result.update(
+            {
+                "job_id": job_id,
+                "model_id": job["model_id"],
+                "revision": job["revision"],
+                "destination": job["destination"],
+            }
+        )
         return result
 
 
