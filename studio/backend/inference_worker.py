@@ -6,6 +6,7 @@ Execution happens only after an explicit start request.
 
 from __future__ import annotations
 
+import importlib
 import json
 import os
 import sys
@@ -72,8 +73,10 @@ def main() -> int:
     _status(status_path, {"state": "loading", "message": "Chargement du modèle local…"})
     try:
         # Optional heavy dependencies: intentionally installed separately from Studio.
-        import torch
-        from transformers import AutoModelForCausalLM, AutoTokenizer
+        torch = importlib.import_module("torch")
+        transformers = importlib.import_module("transformers")
+        AutoModelForCausalLM = getattr(transformers, "AutoModelForCausalLM")
+        AutoTokenizer = getattr(transformers, "AutoTokenizer")
 
         if device == "cuda" and not torch.cuda.is_available():
             raise RuntimeError("CUDA unavailable")
@@ -107,7 +110,9 @@ def main() -> int:
         )
         return 1
 
-    _status(status_path, {"state": "ready", "message": "Modèle prêt pour le chat local."})
+    _status(
+        status_path, {"state": "ready", "message": "Modèle prêt pour le chat local."}
+    )
     for line in sys.stdin:
         try:
             command = json.loads(line)
@@ -133,7 +138,7 @@ def main() -> int:
                         do_sample=False,
                         pad_token_id=tokenizer.eos_token_id,
                     )
-                new_tokens = generated[0, ids.shape[-1]:]
+                new_tokens = generated[0, ids.shape[-1] :]
                 answer = tokenizer.decode(new_tokens, skip_special_tokens=True)
                 _status(
                     output,
