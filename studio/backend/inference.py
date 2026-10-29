@@ -72,7 +72,7 @@ def _check_snapshot(model_id: str, revision: str) -> Path | None:
     names = data.get("files")
     if not isinstance(names, list) or not 1 <= len(names) <= 350:
         return None
-    if len(names) != len(set(x for x in names if isinstance(x, str))):
+    if len(names) != len({x for x in names if isinstance(x, str)}):
         return None
     if "config.json" not in names or not any(
         isinstance(x, str) and x.endswith(".safetensors") for x in names
