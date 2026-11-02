@@ -7,6 +7,9 @@ type SystemInfo = {
   logical_cpus: number | null;
   ram_total_gb: number;
   ram_available_gb: number;
+  disk_available_gb: number | null;
+  architecture: string;
+  apple_silicon_possible: boolean;
   nvidia_gpus: { name: string; memory_total_gb: number; memory_free_gb: number }[];
   gpu_detection_note: string;
 };
@@ -57,6 +60,7 @@ export function App() {
           <a className="nav-item active" href="#overview"><span>◫</span> Vue d'ensemble</a>
           <a className="nav-item" href="#models"><span>◈</span> Modèles IA</a>
           <a className="nav-item" href="#machine"><span>▤</span> Mon matériel</a>
+          <a className="nav-item" href="#compatibility"><span>⌁</span> Compatibilité</a>
           <a className="nav-item" href="#roadmap"><span>◇</span> Prochaines étapes</a>
         </nav>
         <div className="sidebar-bottom"><div className="status-dot" /> Mode local · Lecture seule</div>
@@ -73,6 +77,7 @@ export function App() {
             <article className="card"><div className="card-icon">▣</div><div className="label">SYSTÈME</div><div className="value">{system?.os ?? '—'}</div><div className="sub">{system?.cpu ?? 'En attente du backend'}</div></article>
             <article className="card"><div className="card-icon">▥</div><div className="label">MÉMOIRE RAM</div><div className="value">{system ? String(system.ram_total_gb) + ' Go' : '—'}</div><div className="sub">{system ? String(system.ram_available_gb) + ' Go disponibles' : 'Informations indisponibles'}</div></article>
             <article className="card"><div className="card-icon">◈</div><div className="label">GPU NVIDIA DÉTECTÉ</div><div className="value">{system ? system.nvidia_gpus.length : '—'}</div><div className="sub">{system?.nvidia_gpus.map((gpu) => gpu.name + ' · ' + gpu.memory_total_gb + ' Go VRAM').join(' ; ') || 'Non détecté ou non pris en charge par cette sonde'}</div></article>
+            <article className="card"><div className="card-icon">▢</div><div className="label">DISQUE DISPONIBLE</div><div className="value">{system?.disk_available_gb == null ? '—' : system.disk_available_gb + ' Go'}</div><div className="sub">{system?.apple_silicon_possible ? 'Apple Silicon détecté : accélération non vérifiée' : 'Espace disponible sur le disque contenant le projet'}</div></article>
           </div>
           {system && <div className="note">ⓘ {system.gpu_detection_note} Ce diagnostic ne valide pas la compatibilité avec un modèle.</div>}
           <Models />

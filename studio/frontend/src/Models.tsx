@@ -1,4 +1,5 @@
 import { useEffect, useState, type FormEvent } from 'react';
+import { HardwareEstimator } from './HardwareEstimator';
 
 type CuratedModel = {
   id: string;
@@ -29,6 +30,7 @@ export function Models() {
   const [results, setResults] = useState<HubModel[]>([]);
   const [searchStatus, setSearchStatus] = useState('');
   const [searching, setSearching] = useState(false);
+  const [selectedModel, setSelectedModel] = useState('');
 
   useEffect(() => {
     const controller = new AbortController();
@@ -101,6 +103,14 @@ export function Models() {
               <p>{model.description}</p>
               <div className="model-meta">Accès : {model.access}</div>
               <div className="model-meta">Compatibilité Heretic : non vérifiée</div>
+              <button
+                type="button"
+                className="model-check"
+                onClick={() => setSelectedModel(model.id)}
+                aria-pressed={selectedModel === model.id}
+              >
+                {selectedModel === model.id ? 'Sélectionné ✓' : 'Évaluer mon matériel'}
+              </button>
               <a href={model.url} target="_blank" rel="noopener noreferrer" className="model-link">
                 Voir sur Hugging Face <span aria-hidden="true">↗</span>
               </a>
@@ -108,6 +118,7 @@ export function Models() {
           ))}
         </div>
       )}
+      <HardwareEstimator modelId={selectedModel} />
       <div className="hub-panel">
         <div>
           <span className="eyebrow">RECHERCHE EXTERNE</span>

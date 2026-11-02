@@ -6,17 +6,16 @@ Launch it on loopback only: uvicorn app:app --host 127.0.0.1 --port 8765
 
 from __future__ import annotations
 
-import platform
 import shutil
 import subprocess
 import sys
 from pathlib import Path
-from typing import Annotated
+from typing import Annotated, Literal
 
-import psutil
 from catalog import HubUnavailable, curated_catalog, search_hugging_face
 from fastapi import FastAPI, HTTPException, Query
 from fastapi.middleware.cors import CORSMiddleware
+from hardware import estimate_resources, system_resources
 
 if sys.version_info >= (3, 11):
     import tomllib
@@ -83,16 +82,7 @@ def health() -> dict[str, str]:
 
 @app.get("/api/system")
 def system_info() -> dict[str, object]:
-    memory = psutil.virtual_memory()
-    return {
-        "os": platform.system(),
-        "cpu": platform.processor() or platform.machine() or "Non identifié",
-        "logical_cpus": psutil.cpu_count(logical=True),
-        "ram_total_gb": round(memory.total / (1024**3), 1),
-        "ram_available_gb": round(memory.available / (1024**3), 1),
-        "nvidia_gpus": inspect_nvidia_gpus(),
-        "gpu_detection_note": "La détection couvre NVIDIA via nvidia-smi ; les autres GPU peuvent ne pas apparaître.",
-    }
+    return system_resources(ROOT, inspect_nvidia_gpus())
 
 
 @app.get("/api/project")
@@ -137,3 +127,28 @@ def models_search(
         "models": results,
         "notice": "Métadonnées publiques uniquement ; aucune compatibilité garantie.",
     }
+
+
+@app.get("/api/hardware/estimate")
+def hardware_estimate(
+    model_id: Annotated[
+        str,
+        Query(
+            min_length=5, max_length=120, pattern=r"^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$"
+        ),
+    ],
+    mode: Literal["inference", "optimization"] = "inference",
+    precision: Literal["fp16", "bnb_4bit"] = "fp16",
+) -> dict[str, object]:
+    estimate = estimate_resources(
+        model_id=model_id,
+        mode=mode,
+        precision=precision,
+        info=system_info(),
+    )
+    if estimate is None:
+        raise HTTPException(
+            status_code=404,
+            detail="Modèle absent du catalogue : aucune estimation fiable disponible.",
+        )
+    return estimate
