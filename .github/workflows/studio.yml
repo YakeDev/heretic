@@ -2,7 +2,7 @@ name: Heretic Studio checks
 
 on:
   push:
-    branches: [master]
+    branches: [master, "feature/**"]
     paths:
       - "studio/**"
       - ".github/workflows/studio.yml"
