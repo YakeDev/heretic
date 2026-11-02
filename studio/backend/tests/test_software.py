@@ -17,7 +17,7 @@ from software import inspect_software, installed_packages, nvidia_driver, torch_
 
 class SoftwareDiagnosticsTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(app)
+        self.client = TestClient(app, base_url="http://127.0.0.1:8765")
 
     def test_endpoint_is_read_only(self) -> None:
         with patch(

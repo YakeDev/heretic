@@ -14,7 +14,7 @@ from fastapi.testclient import TestClient
 
 class CatalogTests(unittest.TestCase):
     def setUp(self) -> None:
-        self.client = TestClient(app)
+        self.client = TestClient(app, base_url="http://127.0.0.1:8765")
 
     def test_curated_models_are_offline_and_have_safe_urls(self) -> None:
         with patch("catalog.httpx.get") as fetch:
