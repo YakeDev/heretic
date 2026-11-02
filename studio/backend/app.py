@@ -25,6 +25,16 @@ from downloads import (
 from fastapi import FastAPI, HTTPException, Query, Request
 from fastapi.middleware.cors import CORSMiddleware
 from hardware import estimate_resources, system_resources
+from inference import (
+    InferenceError,
+    current_session,
+    downloaded_models,
+    generate,
+    generation_status,
+    session_status,
+    start_session,
+    stop_session,
+)
 from pydantic import BaseModel
 from software import inspect_software
 from starlette.middleware.trustedhost import TrustedHostMiddleware
@@ -38,7 +48,7 @@ ROOT = Path(__file__).resolve().parents[2]
 TRUSTED_ORIGINS = {"http://localhost:5173", "http://127.0.0.1:5173"}
 
 app = FastAPI(
-    title="Heretic Studio (local)", version="0.1.0", docs_url=None, redoc_url=None
+    title="Heretic Studio (local)", version="0.3.0", docs_url=None, redoc_url=None
 )
 app.add_middleware(
     CORSMiddleware,
@@ -91,7 +101,7 @@ def inspect_nvidia_gpus() -> list[dict[str, object]]:
 
 @app.get("/api/health")
 def health() -> dict[str, str]:
-    return {"status": "ok", "mode": "local-download-alpha", "version": "0.2.0"}
+    return {"status": "ok", "mode": "local-inference-alpha", "version": "0.3.0"}
 
 
 @app.get("/api/system")
@@ -240,4 +250,93 @@ def download_cancel(request: Request, job_id: str) -> dict[str, object]:
     try:
         return cancel_download(job_id)
     except DownloadError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+class StartChatRequest(BaseModel):
+    model_id: str
+    revision: str
+    device: Literal["cpu", "cuda"] = "cuda"
+
+
+class ChatMessage(BaseModel):
+    role: Literal["user", "assistant"]
+    content: str
+
+
+class ChatGenerateRequest(BaseModel):
+    messages: list[ChatMessage]
+    max_new_tokens: int = 256
+    style: Literal["neutral", "concise", "pedagogical"] = "neutral"
+    generation_mode: Literal["stable", "varied"] = "stable"
+
+
+@app.get("/api/chat/models")
+def chat_models(request: Request) -> dict[str, object]:
+    """Only show previously completed local curated model snapshots."""
+    _download_authorization(request)
+    return {
+        "models": downloaded_models(),
+        "notice": "Seuls les modèles locaux validés par le gestionnaire sont proposés.",
+    }
+
+
+@app.get("/api/chat/current")
+def chat_current(request: Request) -> dict[str, object]:
+    _download_authorization(request)
+    return {"session": current_session()}
+
+
+@app.post("/api/chat/start")
+def chat_start(request: Request, payload: StartChatRequest) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return start_session(payload.model_id, payload.revision, payload.device)
+    except InferenceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.get("/api/chat/{session_id}")
+def chat_status(request: Request, session_id: str) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return session_status(session_id)
+    except InferenceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.post("/api/chat/{session_id}/generate")
+def chat_generate(
+    request: Request, session_id: str, payload: ChatGenerateRequest
+) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return generate(
+            session_id,
+            [message.model_dump() for message in payload.messages],
+            payload.max_new_tokens,
+            payload.style,
+            payload.generation_mode,
+        )
+    except InferenceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.get("/api/chat/{session_id}/responses/{request_id}")
+def chat_response(
+    request: Request, session_id: str, request_id: str
+) -> dict[str, object]:
+    _download_authorization(request)
+    try:
+        return generation_status(session_id, request_id)
+    except InferenceError as exc:
+        raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc
+
+
+@app.post("/api/chat/{session_id}/stop")
+def chat_stop(request: Request, session_id: str) -> dict[str, str]:
+    _download_authorization(request)
+    try:
+        return stop_session(session_id)
+    except InferenceError as exc:
         raise HTTPException(status_code=exc.status_code, detail=str(exc)) from exc

@@ -218,6 +218,12 @@ class DownloadTests(unittest.TestCase):
             result = worker_main()
         self.assertEqual(result, 0)
         self.assertEqual(json.loads(status_file.read_text())["state"], "completed")
+        receipt = json.loads(
+            (destination / "heretic-studio-snapshot.json").read_text(encoding="utf-8")
+        )
+        self.assertEqual(receipt["model_id"], self.model)
+        self.assertEqual(receipt["revision"], "a" * 40)
+        self.assertEqual(receipt["files"], ["model.safetensors"])
         fetch.assert_called_once_with(
             repo_id=self.model,
             filename="model.safetensors",

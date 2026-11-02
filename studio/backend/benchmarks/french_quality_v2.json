@@ -1,0 +1,234 @@
+{
+  "title": "Heretic Studio — évaluation française v2",
+  "description": "Version corrigée après premier benchmark réel : pas d'allégation attribuée faussement au modèle, et aucun score automatique de connaissance fondé sur le seul mot TCP.",
+  "version": 1,
+  "cases": [
+    {
+      "id": "tcp-udp-correction",
+      "category": "correction",
+      "title": "TCP/UDP : correction d'une erreur",
+      "turns": [
+        {
+          "prompt": "Explique la différence entre TCP et UDP en trois phrases maximum.",
+          "review": "Évaluer les faits : TCP garantit l'ordre et la fiabilité des données, mais pas leur confidentialité ; UDP ne fournit pas les mêmes garanties. Les deux peuvent utiliser des réseaux filaires ou sans fil."
+        },
+        {
+          "prompt": "Réexamine ta réponse précédente. As-tu confondu la fiabilité du transport avec la confidentialité ou la sécurité ? Vérifie les garanties de TCP et UDP, puis corrige toute erreur sans recopier la même formulation.",
+          "review": "Distinguer la fiabilité du transport de la confidentialité, corriger le texte précédent sans répétition, et ne pas inventer une spécificité sans fil d'UDP."
+        }
+      ]
+    },
+    {
+      "id": "tcp-udp-usage",
+      "category": "knowledge",
+      "title": "Appels vidéo et UDP",
+      "turns": [
+        {
+          "prompt": "Quel protocole de transport, TCP ou UDP, est généralement privilégié pour les appels vidéo en temps réel ? Explique en deux phrases.",
+          "review": "UDP est généralement préféré pour le temps réel, notamment pour sa faible latence; la sécurité dépend de protocoles distincts comme DTLS/SRTP."
+        }
+      ]
+    },
+    {
+      "id": "rewrite-fr",
+      "category": "reformulation",
+      "title": "Reformulation en français",
+      "turns": [
+        {
+          "prompt": "Reformule en français professionnel : « on a pas reçu les pieces mais on va les envoyé demain ». Corrige aussi la grammaire.",
+          "review": "Vérifier absolument la négation : les pièces n'ont PAS été reçues ; un envoi demain est annoncé. Ne pas inverser le fait."
+        },
+        {
+          "prompt": "Fais maintenant une version plus concise et différente, sans répéter exactement la phrase précédente.",
+          "review": "Formulation différente, plus concise, mais toujours avec les pièces non reçues et l'envoi demain.",
+          "check": {
+            "type": "different"
+          }
+        }
+      ]
+    },
+    {
+      "id": "math-add",
+      "category": "reasoning",
+      "title": "Addition vérifiable",
+      "turns": [
+        {
+          "prompt": "Calcule 17 + 25. Réponds uniquement par le nombre.",
+          "review": "Résultat attendu : 42.",
+          "check": {
+            "type": "number",
+            "value": 42
+          }
+        }
+      ]
+    },
+    {
+      "id": "math-percent",
+      "category": "reasoning",
+      "title": "Pourcentage simple",
+      "turns": [
+        {
+          "prompt": "Quel est 20 % de 150 ? Réponds par le nombre seulement.",
+          "review": "Résultat attendu : 30.",
+          "check": {
+            "type": "number",
+            "value": 30
+          }
+        }
+      ]
+    },
+    {
+      "id": "memory-keyword",
+      "category": "context",
+      "title": "Mémorisation sur deux tours",
+      "turns": [
+        {
+          "prompt": "Pour cet exercice fictif, le code de référence est AZUR-47. Confirme en une phrase.",
+          "review": "Le modèle doit reconnaître la référence fictive."
+        },
+        {
+          "prompt": "Quel est le code de référence donné dans mon message précédent ? Réponds sans explication.",
+          "review": "Réponse attendue : AZUR-47.",
+          "check": {
+            "type": "contains",
+            "value": "AZUR-47"
+          }
+        }
+      ]
+    },
+    {
+      "id": "json-format",
+      "category": "structured",
+      "title": "JSON sans texte parasite",
+      "turns": [
+        {
+          "prompt": "Renvoie uniquement un objet JSON valide avec deux clés : ville = Lubumbashi et pays = RDC.",
+          "review": "Objet JSON parseable avec ville et pays; pas de texte autour.",
+          "check": {
+            "type": "json_fields",
+            "value": {
+              "ville": "Lubumbashi",
+              "pays": "RDC"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "id": "three-sentences",
+      "category": "instructions",
+      "title": "Limite de trois phrases",
+      "turns": [
+        {
+          "prompt": "Explique ce qu'est une variable en programmation en trois phrases maximum.",
+          "review": "Réponse claire et juste avec au plus trois phrases. Le compteur heuristique peut se tromper.",
+          "check": {
+            "type": "max_sentences",
+            "value": 3
+          }
+        }
+      ]
+    },
+    {
+      "id": "translation-en",
+      "category": "language",
+      "title": "Traduction métier",
+      "turns": [
+        {
+          "prompt": "Traduis en anglais professionnel : « La commande est en attente de livraison. » Réponds en une phrase.",
+          "review": "Traduction professionnelle fidèle : The order is awaiting delivery / pending delivery."
+        }
+      ]
+    },
+    {
+      "id": "code-python",
+      "category": "code",
+      "title": "Erreur Python",
+      "turns": [
+        {
+          "prompt": "Corrige le code Python `print('Bonjour'` et explique la faute en une phrase.",
+          "review": "La parenthèse de fermeture manque. La correction est print('Bonjour')."
+        }
+      ]
+    },
+    {
+      "id": "privacy-uncertainty",
+      "category": "calibration",
+      "title": "Reconnaissance d'incertitude",
+      "turns": [
+        {
+          "prompt": "Quelle sera exactement la température à Lubumbashi le 18 janvier 2032, à 15h00 ? Donne une valeur garantie.",
+          "review": "Le modèle ne peut pas garantir une température future aussi précise; éviter une valeur présentée comme certaine."
+        }
+      ]
+    },
+    {
+      "id": "network-ipv4",
+      "category": "knowledge",
+      "title": "Compréhension IP",
+      "turns": [
+        {
+          "prompt": "L'adresse 192.168.1.15 appartient-elle à la plage privée RFC1918 ? Justifie brièvement.",
+          "review": "Oui, elle appartient à la plage privée 192.168.0.0/16."
+        }
+      ]
+    },
+    {
+      "id": "rewrite-correction",
+      "category": "correction",
+      "title": "Contradiction et correction",
+      "turns": [
+        {
+          "prompt": "Une phrase prétend : « La Lune est une planète ». Est-ce correct ?",
+          "review": "Non, la Lune est un satellite naturel de la Terre."
+        },
+        {
+          "prompt": "Un étudiant affirme au contraire que la Lune est un satellite naturel. Lequel a raison et pourquoi ?",
+          "review": "Le modèle doit accepter le fait correct et ne pas répéter une erreur."
+        }
+      ]
+    },
+    {
+      "id": "delivery-math",
+      "category": "reasoning",
+      "title": "Quantités livrées",
+      "turns": [
+        {
+          "prompt": "Une commande contient 18 pièces. Le client en reçoit 7 puis 6. Combien reste-t-il à livrer ? Réponds uniquement par le nombre.",
+          "review": "18 - 7 - 6 = 5.",
+          "check": {
+            "type": "number",
+            "value": 5
+          }
+        }
+      ]
+    },
+    {
+      "id": "summary",
+      "category": "summarization",
+      "title": "Synthèse sans invention",
+      "turns": [
+        {
+          "prompt": "Résume en une phrase ce texte : « Une entreprise attend 12 pièces. Le fournisseur en a expédié 8 hier. Les 4 restantes n'ont pas encore de date d'expédition. »",
+          "review": "Doit distinguer les 8 déjà expédiées des 4 en attente sans inventer d'ETA."
+        }
+      ]
+    },
+    {
+      "id": "tcp-udp-followup",
+      "category": "context",
+      "title": "Maintien du contexte",
+      "turns": [
+        {
+          "prompt": "Explique en une phrase ce que signifie UDP.",
+          "review": "User Datagram Protocol, protocole de transport sans connexion."
+        },
+        {
+          "prompt": "Lequel des deux utilise une connexion établie : TCP ou celui dont nous venons de parler ?",
+          "review": "TCP est orienté connexion."
+        }
+      ]
+    }
+  ],
+  "suite_revision": 2
+}

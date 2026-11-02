@@ -158,21 +158,21 @@ export function DownloadManager({ modelId }: { modelId: string }) {
   return (
     <section className="download-panel" id="downloads" aria-labelledby="downloads-title">
       <span className="eyebrow">05 / TÉLÉCHARGEMENT LOCAL</span>
-      <h3 id="downloads-title">Télécharger les fichiers du modèle</h3>
+      <h3 id="downloads-title">Préparer un modèle sur ton ordinateur</h3>
       <p>
-        Téléchargement facultatif, uniquement sur ton ordinateur. Le modèle ne sera ni
-        exécuté ni modifié. Pour une conversation, il faudra encore ajouter le module d'inférence.
+        Vérifie d’abord la taille et la licence. Aucun fichier n’est téléchargé sans
+        ton accord. Une fois les poids reçus, tu peux ouvrir le Chat local.
       </p>
       <div className="selected-model">
         <span>MODÈLE CHOISI DANS LE CATALOGUE</span>
-        <strong>{modelId || 'Sélectionne un modèle ci-dessus.'}</strong>
+        <strong>{modelId || 'Aucun modèle sélectionné · reviens au catalogue.'}</strong>
       </div>
       <button type="button" onClick={() => void prepare()} disabled={!modelId || busy || inProgress}>
-        {busy && !inProgress ? 'Préparation…' : 'Vérifier les fichiers et le stockage'}
+        {busy && !inProgress ? 'Vérification…' : '1. Vérifier la taille et le stockage'}
       </button>
       {preview && (
         <div className="download-review">
-          <h4>Vérification avant téléchargement</h4>
+          <h4>2. Examiner avant de télécharger</h4>
           <dl>
             <div><dt>Modèle</dt><dd>{preview.model_id}</dd></div>
             <div><dt>Fichiers autorisés</dt><dd>{preview.file_count}</dd></div>
@@ -199,7 +199,7 @@ export function DownloadManager({ modelId }: { modelId: string }) {
             J'ai consulté les conditions et je confirme avoir le droit de télécharger ce modèle.
           </label>
           <button type="button" onClick={() => void start()} disabled={!accepted || busy}>
-            Confirmer le téléchargement
+            Confirmer et télécharger
           </button>
         </div>
       )}
@@ -214,9 +214,14 @@ export function DownloadManager({ modelId }: { modelId: string }) {
           </strong>
           <p>{job.model_id}</p>
           <progress value={progress} max="100">{progress}%</progress>
-          <span>{progress}% des fichiers entièrement transférés · {job.completed_files ?? 0}/{job.total_files ?? '?'} fichiers</span>
+          <span>{progress}% du total estimé, compté par fichier terminé · {job.completed_files ?? 0}/{job.total_files ?? '?'} fichiers</span>
           {job.message && <p>{job.message}</p>}
-          {job.state === 'completed' && <p className="download-path">Dossier : {job.destination}</p>}
+          {job.state === 'completed' && (
+            <>
+              <p className="download-path">Dossier : {job.destination}</p>
+              <a className="download-next-step" href="#local-chat">3. Ouvrir le Chat local →</a>
+            </>
+          )}
           {inProgress && (
             <button type="button" onClick={() => void cancel()} disabled={busy}>
               Annuler le téléchargement

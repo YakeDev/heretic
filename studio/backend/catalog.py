@@ -17,6 +17,13 @@ MAX_RESULTS = 12
 
 CURATED_MODELS: tuple[dict[str, str], ...] = (
     {
+        "id": "Qwen/Qwen2.5-0.5B-Instruct",
+        "family": "Qwen",
+        "parameters": "0.5B",
+        "description": "Petit modèle adapté à un premier essai local sur CPU.",
+        "access": "Vérifier la fiche du modèle",
+    },
+    {
         "id": "meta-llama/Llama-3.2-3B-Instruct",
         "family": "Llama",
         "parameters": "3B",

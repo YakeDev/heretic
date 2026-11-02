@@ -18,7 +18,7 @@ class StudioApiTests(unittest.TestCase):
     def test_health_is_explicitly_read_only(self) -> None:
         response = self.client.get("/api/health")
         self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.json()["mode"], "local-download-alpha")
+        self.assertEqual(response.json()["mode"], "local-inference-alpha")
 
     def test_project_reads_existing_package_metadata(self) -> None:
         response = self.client.get("/api/project")
