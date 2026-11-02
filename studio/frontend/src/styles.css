@@ -77,3 +77,18 @@ footer{padding:40px 0 0;color:#63768a;letter-spacing:.1em;font-size:10px}
 .model-check:hover,.model-check[aria-pressed="true"]{background:#256452;color:#e5fff1}
 .model-card .model-link{margin-top:0}
 @media(max-width:680px){.hardware-panel{padding:15px}.hardware-form{display:grid}.hardware-form button{width:100%}.estimate-grid{grid-template-columns:1fr}}
+
+.software-panel{margin-top:22px;border:1px solid #314559;border-radius:15px;background:#131f2f;padding:23px;min-width:0}
+.software-panel .section-heading{align-items:center}
+.software-results{margin-top:20px}
+.software-quickfacts{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin:18px 0}
+.software-quickfacts div{border:1px solid #34485b;border-radius:9px;padding:12px;min-width:0;display:grid;gap:7px}
+.software-quickfacts dt{font-size:12px}.software-quickfacts dd{font-size:14px;text-align:left;overflow-wrap:anywhere}
+.software-results h3{font-size:17px;margin:24px 0 13px}
+.software-packages{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px}
+.software-packages div{border:1px solid #334458;border-radius:8px;padding:12px;display:flex;gap:10px;justify-content:space-between;align-items:center;min-width:0;font-size:13px}
+.software-packages strong{color:#95e8c8;text-align:right;font-size:12px;overflow-wrap:anywhere}
+.software-packages .not-installed{color:#b9a891}
+.software-environment{font-size:12px;color:#9ba9bb;margin-top:20px;overflow-wrap:anywhere}
+.software-environment code{font-family:ui-monospace,SFMono-Regular,Consolas,monospace}
+@media(max-width:680px){.software-panel{padding:16px}.software-panel .section-heading{display:grid}.software-panel .section-heading button{width:100%}.software-quickfacts,.software-packages{grid-template-columns:1fr}}

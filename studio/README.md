@@ -12,6 +12,7 @@ Interface **expérimentale, en français, en lecture seule** pour explorer les i
 - Recherche de métadonnées publiques de Hugging Face (connexion internet nécessaire seulement pour la recherche).
 - **Estimation indicative des ressources** pour les modèles du catalogue : inférence ou optimisation Heretic, FP16 ou bitsandbytes 4 bits.
 - Sélection d'un modèle depuis le catalogue, évaluation locale sans téléchargement ni exécution.
+- Diagnostic logiciel déclenché explicitement : versions Python/PyTorch/Transformers/Accelerate/PEFT/bitsandbytes/Hugging Face Hub/Optuna, pilotes NVIDIA accessibles et sondage local PyTorch CUDA/Apple MPS.
 - **Pas de téléchargement des poids, d'exécution, de modification, d'export ni de publication de modèles.** Les commandes futures ne sont pas activées.
 
 ## Lancer le backend (terminal 1)
@@ -79,6 +80,33 @@ Ces **heuristiques ne sont pas des seuils réels d'Heretic** : la mémoire néce
 - **Compatibilité réelle :** non testée (pilotes, CUDA/ROCm/MPS, bitsandbytes, PyTorch, architecture, licence). Les modèles ne sont pas lancés.
 - **Modèles non répertoriés :** réponse HTTP 404 au lieu d'inventer une estimation de paramètres.
 
+## Diagnostic logiciel (étape suivante)
+
+Depuis l'interface de Heretic Studio, cliquer **Vérifier mon environnement**.
+Cette action appelle `GET /api/hardware/software` et ne requiert aucun modèle.
+
+Le diagnostic :
+
+- lit les versions des distributions Python **sans importer leurs modules** (via `importlib.metadata`) ;
+- examine les informations de pilote NVIDIA si `nvidia-smi` est disponible ; une sonde manquante **ne prouve pas l'absence de GPU** ;
+- exécute uniquement une **sonde PyTorch codée en dur**, via `python -I -c` dans un **processus enfant isolé**, avec délai maximum de 15 secondes ;
+- vérifie si PyTorch déclare CUDA ou Apple MPS disponibles et relève les versions CUDA/ROCm de son build ;
+- n'importe aucun code distant, ne télécharge pas de poids, n'installe rien, ne modifie pas la configuration de l'ordinateur.
+
+### Interprétation
+
+- `torch_not_installed` : PyTorch absent **du Python exécutant le backend Studio**. Il peut être présent dans un autre environnement.
+- `checked` : la sonde Python a pu lire les informations de PyTorch ; cela ne prouve pas qu'Heretic peut charger le modèle choisi.
+- `probe_failed` / `timeout` : diagnostic non concluant, aucune déduction de compatibilité.
+- `not_detected` pour le pilote NVIDIA : absence de résultat de la commande, pas preuve d'incompatibilité AMD/Apple.
+- Versions de bibliothèques installées : **ne démontrent ni cohérence entre versions, ni disponibilité du backend 4 bits.**
+
+L'application affiche toujours `compatibility: not_verified`. Le diagnostic concerne **l'environnement du backend Studio**, et non automatiquement le Python d'une autre installation de Heretic. L'exécution réelle, la compatibilité d'architecture des modèles et l'acceptation des licences sont hors périmètre.
+
+### Vérifications automatisées
+
+Tests : `python -m unittest discover -s studio/backend/tests -v`, et compilation React `cd studio/frontend && npm run build`. Les tests utilisent des mocks pour ne pas lancer réellement PyTorch ou `nvidia-smi`.
+
 ## Sécurité et architecture
 
 - **Local uniquement** : le serveur est lancé sur 127.0.0.1 ; ne pas utiliser --host 0.0.0.0.
@@ -94,6 +122,6 @@ Ces **heuristiques ne sont pas des seuils réels d'Heretic** : la mémoire néce
 
 ## Prochain jalon
 
-Un diagnostic logiciel plus précis (pilotes/CUDA/ROCm/MPS, vérification des architectures), un assistant de configuration et un gestionnaire d'expériences **avec confirmation explicite, annulation et journaux** ; ces fonctions ne sont pas présentes dans cette alpha.
+La validation réelle des versions, des pilotes, des architectures et du mode bitsandbytes sur une machine de test, un assistant de configuration et un gestionnaire d'expériences **avec confirmation explicite, annulation et journaux** ; ces fonctions ne sont pas présentes dans cette alpha.
 
 Licence : le dépôt parent est sous AGPL-3.0-or-later ; les nouvelles contributions conservent cette licence.
